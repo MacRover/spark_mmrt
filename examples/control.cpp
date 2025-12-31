@@ -9,6 +9,7 @@ int main()
     // Initialize SparkMax object with CAN interface (can0) and CAN ID 1 
     spark_mmrt::can::SocketCanTransport transport; 
     transport.open("can0");  // open/bind the socket to interface "can0"
+    // transport.open("vcan0");  VCAN TESTING 
     SparkMax motor(transport, 1);
 
     auto start = std::chrono::high_resolution_clock::now();  // Starting timestamp
