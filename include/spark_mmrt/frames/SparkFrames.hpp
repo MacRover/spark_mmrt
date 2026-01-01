@@ -3,6 +3,7 @@
 
 #include "spark_mmrt/can/CanFrame.hpp"
 #include "spark_mmrt/frames/SparkFrames.hpp"
+#include "spark_mmrt/frames/StatusFrames.hpp"
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -10,6 +11,13 @@
 
 constexpr uint8_t DEVICE_TYPE = 0x02; // Device type for SPARK controllers
 constexpr uint8_t MANUFACTURER=  0x05; // Manufacturer ID for REV Robotics
+
+//Status Frames ArbID 
+constexpr uint32_t STATUS0_BASE = 0x0205B800; 
+constexpr uint32_t STATUS1_BASE = 0x0205B840;
+constexpr uint32_t STATUS2_BASE = 0x0205B880;
+
+
 
 // apiClass , apiIndex from spark_mmrt/docs/spark-frames-2.0.0-dev.11
 struct Api { uint8_t cls; uint8_t idx; };
@@ -40,6 +48,10 @@ constexpr uint64_t sparkMaxDeviceIDMask(uint8_t canID) {
 spark_mmrt::can::CanFrame heartbeatFrame();
 
 spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID);
+
+void status0Decoder(const std::array<uint8_t, 8> &data, Status0& s0);
+void status1Decoder(const std::array<uint8_t, 8> &data, Status1& s1);
+
 
 
 

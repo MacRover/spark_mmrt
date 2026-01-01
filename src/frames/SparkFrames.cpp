@@ -1,4 +1,5 @@
 #include "spark_mmrt/frames/SparkFrames.hpp"
+#include "spark_mmrt/frames/StatusFrames.hpp"
  
 #include <cstring> 
 #include <cstdint>
@@ -61,6 +62,28 @@ static void setBits(std::array<uint8_t, 8> & data, int bitPos, int bitLen, uint3
   }
 }
 
+// Simillar to setBits but builds a uint32 bit by bit from the list 
+static uint32_t getBits(const std::array<uint8_t,8> &data , int bitPos, int bitlen){
+  uint32_t out = 0; 
+  for(int i = 0; i < bitlen; i++){
+    int currBit = bitPos + i; 
+    int byte = currBit / 8; 
+    int bit = currBit % 8; 
+
+    uint32_t bitVal = (data[byte] >> bit) & 1u; 
+    out |= (bitVal << i); 
+  }
+
+  return out;  
+}
+
+
+//Sign extension from uint32 to int 32 
+static int32_t signExtend32(uint32_t x, int bitLen) {
+  uint32_t m = 1u << (bitLen - 1);
+  return int32_t((x ^ m) - m);
+}
+
 // Build a heartbeat CAN frame (8 bytes all 0xFF) using the Heartbeat arbitration ID
 spark_mmrt::can::CanFrame heartbeatFrame(){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::Heartbeat, 0); // CAN ID = 0 for all sparkMAX
@@ -72,10 +95,10 @@ spark_mmrt::can::CanFrame heartbeatFrame(){
 
 // Build a duty cycle command frame for a given device ID
 // Payload (8 bytes) layout:
-// - bits 0..31  (bytes 0..3): float32 setpoint (dutyCycle)
-// - bits 32..47  (bytes 4..5): int16 feed-forward
-// - bits 48..49  (byte 6, bits 0..1): PID slot
-// - bit 50   (byte 6, bit 2):  Feed Forward units 
+// - bits 0..31 (bytes 0..3): float32 setpoint (dutyCycle)
+// - bits 32..47 (bytes 4..5): int16 feed-forward
+// - bits 48..49 (byte 6, bits 0..1): PID slot
+// - bit 50 (byte 6, bit 2):  Feed Forward units 
 // - bits 51..63  (byte 6 bit 3 ... end): reserved
 spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::DutyCycle, deviceID);
@@ -99,3 +122,41 @@ spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
 
   return frame;   
 }
+
+
+// Status 0 frame (SPARK MAX to program) for a given device ID
+// Payload (8 bytes) layout:
+// - bits 0..15: Applied Output  [-1, 1]
+// - bits 16..27: Voltage [V]
+// - bits 28..39: Current [A]
+// - bits 40..47  Motor Temperature [°C]
+// - bit  48: Hard Forward Limit Reached (bool)
+// - bit  49: Hard Reverse Limit Reached (bool)
+// - bit  50: Soft Forward Limit Reached (bool)
+// - bit  51: Soft Reverse Limit Reached (bool)
+// - bit  52: Inverted (bool)
+// - bit  53: Primary Heartbeat Lock (bool)
+// - bits 54..63: Reserved 
+void status0Decoder(const  std::array<uint8_t, 8> &data, Status0& s0){
+  // data is uint but applied output is int need to sign extend after building 
+  int32_t aoRaw = signExtend32(getBits(data, 0, 16), 16); 
+  s0.appliedOutput = float(aoRaw) * Status0Scale::appliedOutputScale;
+
+  uint32_t vRaw = getBits(data, 16, 12); 
+  s0.voltage = float(vRaw) * Status0Scale::voltageScale; 
+
+  uint32_t iRaw = getBits(data, 28, 12);
+  s0.current = float(iRaw) * Status0Scale::currentScale; 
+
+  s0.motorTempC = uint8_t(getBits(data, 40, 8)); 
+
+  s0.hardForwardLimit = getBits(data, 48, 1); 
+  s0.hardReverseLimit = getBits(data, 49, 1); 
+  s0.softForwardLimit = getBits(data, 50 , 1); 
+  s0.softReverseLimit = getBits(data, 51, 1);
+  s0.inverted = getBits(data, 52, 1); 
+  s0.primaryHeartbeatLock = getBits(data, 53, 1);
+
+}
+
+void status1Decoder(const std::array<uint8_t, 8> &data, Status1& s1){};

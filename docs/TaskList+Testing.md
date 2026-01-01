@@ -4,23 +4,31 @@
 ## Implemneted
 
 ### Transport (SocketCAN)
-- [X] `SocketCanTransport::open(interface_name)` NEED TESTING 
-- [x] `SocketCanTransport::close()`, `isOpen()` NEED TESTING 
-- [x] `SocketCanTransport::send(const CanFrame&)` NEED TESTING 
-- [x] `SocketCanTransport::recv(timeout)` NEED TESTING 
+- [X] `SocketCanTransport::open(interface_name)` TESTED THROUGH VCAN 
+- [x] `SocketCanTransport::close()`, `isOpen()` TESTED THROUGH VCAN 
+- [x] `SocketCanTransport::send(const CanFrame&)` TESTED THROUGH VCAN 
+- [x] `SocketCanTransport::recv(timeout)` TESTED THROUGH VCAN 
 
 ### frame Building (from spark-frames-2.0.0-dev.11)
-- [x] `makeArbID(deviceType, manufacturer, apiClass/apiIndex, deviceID)` NEED TESTING 
+- [x] `makeArbID(deviceType, manufacturer, apiClass/apiIndex, deviceID)` TESTED THROUGH VCAN 
 - [x] Payload pack helpers in `SparkFrames.cpp`: 
-  - [x] `packFloat32`  NEED TESTING 
-  - [x] `packInt16` NEED TESTING 
-  - [x] `setBits` NEED TESTING 
+  - [x] `packFloat32`  TESTED THROUGH VCAN 
+  - [x] `packInt16` TESTED THROUGH VCAN 
+  - [x] `setBits` TESTED THROUGH VCAN 
+  - [x] `GetBits` TESTED THROUGH VCAN 
+  - [x] `SignExtend` TESTED THROUGH VCAN 
+
 - [x] Frame builders:
-  - [x] `heartbeatFrame()` — Secondary Heartbeat (`apiClass=11`, `apiIndex=2`) NEED TESTING 
-  - [x] `setDutyCycleFrame(dutyCycle, deviceID)` — Duty Cycle Setpoint (`apiClass=0`, `apiIndex=2`) NEED TESTING 
+  - [x] `heartbeatFrame()` — Secondary Heartbeat (`apiClass=11`, `apiIndex=2`) TESTED THROUGH VCAN 
+  - [x] `setDutyCycleFrame(dutyCycle, deviceID)` — Duty Cycle Setpoint (`apiClass=0`, `apiIndex=2`) TESTED THROUGH VCAN 
+  - [x] `processFrame` - Porcess recieved frame to determine StatusType TESTED THROUGH VCAN 
+  - [x] `Status0Decoder` - Given CAN frame for status Frame 0 decode and put into status0 struct TESTED THROUGH VCAN 
+
+- [x] Getters for StatusFrame0 TESTED THROUGH VCAN 
+
 
 ### control.cpp
-- [x] `examples/control.cpp` opens `can0`, creates motor for CAN ID 1, sends heartbeat + duty NEED TESTING 
+- [x] `examples/control.cpp` opens `can0`, creates motor for CAN ID 1, sends heartbeat + duty TESTED THROUGH VCAN 
 
 
 ##  Needs Implementation Next 
