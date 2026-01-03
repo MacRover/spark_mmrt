@@ -4,19 +4,24 @@
 #include <cstring> 
 #include <cstdint>
 #include <array>
-
+#include <stdexcept>
 
 
 
 //writes specific bytes from data into payload 
-static void WriteBytes(std::array<uint8_t,8> & payload, int startByte, const uint8_t* bytes, int numBytes){
+template <size_t T>
+static void WriteBytes(std::array<uint8_t,T> & payload, int startByte, const uint8_t* bytes, int numBytes){
+  if (startByte < 0 || numBytes < 0 || startByte + numBytes > (int)T) {
+    throw std::out_of_range("WriteBytes out of bounds");
+  }
   for(int i = 0; i < numBytes; i++){
     payload[i+startByte] = bytes[i];
   }
 }
 
 // BYTE ALINGNED VALUES
- static void packFloat32(std::array<uint8_t, 8> &data, int bitPos, float f){
+template <size_t T>
+static void packFloat32(std::array<uint8_t, T> &data, int bitPos, float f){
   const int NUMBYTES = 4;
   int startByte =  bitPos / 8; 
 
@@ -33,8 +38,11 @@ static void WriteBytes(std::array<uint8_t,8> & payload, int startByte, const uin
 
   WriteBytes(data, startByte, bytes, NUMBYTES); // write the float bits into data payload from a specific byte starting point 
 }
+
+
 // BYTE ALIGNED VALUES 
-static void packInt16(std::array<uint8_t,8> & data, int bitPos, int16_t I){
+template <size_t T>
+static void packInt16(std::array<uint8_t,T> & data, int bitPos, int16_t I){
   const int NUMBYTES = 2;  
   uint16_t intBits = uint16_t(I); 
   int startByte = bitPos / 8; 
@@ -48,7 +56,11 @@ static void packInt16(std::array<uint8_t,8> & data, int bitPos, int16_t I){
 }
 
 //NON BYTE ALIGNED VALUES 
-static void setBits(std::array<uint8_t, 8> & data, int bitPos, int bitLen, uint32_t val){
+template <size_t T>
+static void setBits(std::array<uint8_t, T> & data, int bitPos, int bitLen, uint32_t val){
+  if (bitPos < 0 || bitLen < 0 || (bitPos + bitLen) > int(T * 8)) {
+  throw std::out_of_range("setBits out of bounds");
+  }
   for(int i = 0; i < bitLen; i++){
     int currBit = bitPos + i;
     int byte = currBit / 8; 
@@ -63,6 +75,7 @@ static void setBits(std::array<uint8_t, 8> & data, int bitPos, int bitLen, uint3
 }
 
 // Simillar to setBits but builds a uint32 bit by bit from the list 
+
 static uint32_t getBits(const std::array<uint8_t,8> &data , int bitPos, int bitlen){
   uint32_t out = 0; 
   for(int i = 0; i < bitlen; i++){
@@ -117,6 +130,8 @@ spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
   frame.data.fill(0); 
   // Setpoint 
   packFloat32(frame.data, 0, dutyCycle);
+
+  //THESE ARE ALRDY zero might delete later 
   //Feed Forward 
   packInt16(frame.data, 32, 0);
   //PID SLOT
@@ -128,6 +143,143 @@ spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
 
   return frame;   
 }
+
+
+spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::VelocitySetpoint, deviceID); 
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+
+  frame.data.fill(0);
+  //setpoint
+  packFloat32(frame.data, 0, setPoint);
+
+  //THESE ARE ALRDY zero might delete later 
+  //feedforward
+  packInt16(frame.data, 32, 0);
+  //PID SLOT
+  setBits(frame.data, 48, 2, 0);
+  //FeedFroward uints
+  setBits(frame.data, 50, 1, 0); 
+  //reserved alrdy 0
+  
+  return frame;
+}
+
+spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::MMVelocitySetpoint, deviceID);
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+
+  frame.data.fill(0); 
+
+  packFloat32(frame.data, 0, setPoint);
+
+  //THESE ARE ALRDY zero might delete later 
+  //feedforward
+  packInt16(frame.data, 32, 0);
+  //PID SLOT
+  setBits(frame.data, 48, 2, 0);
+  //FeedFroward uints
+  setBits(frame.data, 50, 1, 0); 
+  //reserved alrdy 0
+
+  return frame;
+}
+
+spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::PositionSetpoint, deviceID); 
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+
+  frame.data.fill(0);
+  //setpoint
+  packFloat32(frame.data, 0, setPoint);
+
+  //THESE ARE ALRDY zero might delete later 
+  //feedforward
+  packInt16(frame.data, 32, 0);
+  //PID SLOT
+  setBits(frame.data, 48, 2, 0);
+  //FeedFroward uints
+  setBits(frame.data, 50, 1, 0); 
+  //reserved alrdy 0
+  
+  return frame;
+}
+
+spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::MMPositionSetpoint, deviceID);
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+
+  frame.data.fill(0); 
+
+  packFloat32(frame.data, 0, setPoint);
+
+  //THESE ARE ALRDY zero might delete later 
+  //feedforward
+  packInt16(frame.data, 32, 0);
+  //PID SLOT
+  setBits(frame.data, 48, 2, 0);
+  //FeedFroward uints
+  setBits(frame.data, 50, 1, 0); 
+  //reserved alrdy 0
+
+  return frame;
+}
+
+spark_mmrt::can::CanFrame SetVoltageFrame(float setPoint, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::voltageSetpoint, deviceID);
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+
+  frame.data.fill(0); 
+
+  packFloat32(frame.data, 0, setPoint);
+
+  //THESE ARE ALRDY zero might delete later 
+  //feedforward
+  packInt16(frame.data, 32, 0);
+  //PID SLOT
+  setBits(frame.data, 48, 2, 0);
+  //FeedFroward uints
+  setBits(frame.data, 50, 1, 0); 
+  //reserved alrdy 0
+
+  return frame;
+}
+
+spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::currentSetpoint, deviceID);
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+
+  frame.data.fill(0); 
+
+  packFloat32(frame.data, 0, setPoint);
+
+  //THESE ARE ALRDY zero might delete later 
+  //feedforward
+  packInt16(frame.data, 32, 0);
+  //PID SLOT
+  setBits(frame.data, 48, 2, 0);
+  //FeedFroward uints
+  setBits(frame.data, 50, 1, 0); 
+  //reserved alrdy 0
+
+  return frame;
+}
+
+spark_mmrt::can::CanFrame setEncoderPositionFrame(float position, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::setEncoderPosition, deviceID);
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 5); 
+
+  frame.data.fill(0); 
+
+  packFloat32(frame.data, 0, position);
+
+  //uints 
+  setBits(frame.data, 32, 8, 3);
+
+  return frame;
+}
+
+
 
 
 // Status 0 frame (SPARK MAX to program) for a given device ID

@@ -31,6 +31,14 @@ struct Api { uint8_t cls; uint8_t idx; };
 namespace api {
   constexpr Api Heartbeat{11, 2};
   constexpr Api DutyCycle{0, 2};
+  constexpr Api VelocitySetpoint{0,0};
+  constexpr Api MMVelocitySetpoint{0,9};
+  constexpr Api PositionSetpoint{0,4};
+  constexpr Api MMPositionSetpoint{0,8};
+  constexpr Api voltageSetpoint{0,5};
+  constexpr Api currentSetpoint{0,6};
+  constexpr Api setEncoderPosition{10,0}; 
+
 }
 
 // ArbID Layout: 
@@ -53,6 +61,17 @@ constexpr uint64_t sparkMaxDeviceIDMask(uint8_t canID) {
 spark_mmrt::can::CanFrame heartbeatFrame();
 
 spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID);
+
+
+spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID); 
+spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID);
+spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID);
+spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID);
+spark_mmrt::can::CanFrame SetVoltageFrame(float setPoint, uint8_t deviceID);
+spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID);
+spark_mmrt::can::CanFrame setEncoderPositionFrame(float position, uint8_t deviceID); 
+
+
 
 void status0Decoder(const std::array<uint8_t, 8> &data, Status0& s0);
 void status1Decoder(const std::array<uint8_t, 8> &data, Status1& s1);

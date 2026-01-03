@@ -52,8 +52,10 @@ int main()
     while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count() < 10)
     {
       // Enable and run motor
-      motor.Heartbeat();
-      motor.SetDutyCycle(0.05); // 5% 
+      motor.heartbeat();
+      motor.setDutyCycle(0.05); // 5% 
+      motor.setVoltage(20.5);
+      motor.setCurrent(3.0);
 
       auto f = transport.recv(std::chrono::microseconds{20000}); // Tested with CAN FRAME cansend vcan0 0205B801#5919667603140000
       if (!f) {

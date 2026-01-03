@@ -43,8 +43,16 @@ class SparkMax{
         Status8 getStatus8() const;
         Status9 getStatus9() const;
 
-        void Heartbeat();
-        void SetDutyCycle(float val);
+        void heartbeat();
+        void setDutyCycle(float val);
+        void setVelocity(float val); 
+        void setMMVelocity(float val);
+        void setPosition(float val);
+        void setMMPosition(float val);
+        void setVoltage(float val);
+        void setCurrent(float val);
+        void setEncoderPosition(float val); 
+
         void processFrame(const spark_mmrt::can::CanFrame & f); 
 
 

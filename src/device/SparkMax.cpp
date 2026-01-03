@@ -10,14 +10,50 @@ SparkMax::SparkMax(spark_mmrt::can::SocketCanTransport& transport_, uint8_t ID_)
   : ID(ID_), transport(transport_){}
 
 
-void SparkMax::Heartbeat() {
+void SparkMax::heartbeat() {
   transport.send(heartbeatFrame());
 }
 
-void SparkMax::SetDutyCycle(float val) {
-  if (!std::isfinite(val)) throw std::invalid_argument("duty must be finite");
+void SparkMax::setDutyCycle(float val) {
+  if (!std::isfinite(val)) throw std::invalid_argument("Invalid Duty Cycle");
 
   transport.send(setDutyCycleFrame(val, ID));
+}
+void SparkMax::setVelocity(float val){
+  if (!std::isfinite(val)) throw std::invalid_argument("invalid Velocity Setpoint ");
+
+  transport.send(setVelocityFrame(val, ID)); 
+
+}
+void SparkMax::setMMVelocity(float val){
+  if (!std::isfinite(val)) throw std::invalid_argument("invalid MM Velocity Setpoint ");
+
+  transport.send(setMMVelocityFrame(val, ID)); 
+}
+void SparkMax::setPosition(float val){
+  if (!std::isfinite(val)) throw std::invalid_argument("invalid Position Setpoint ");
+
+  transport.send(setPositionFrame(val, ID)); 
+}
+void SparkMax::setMMPosition(float val){
+  if (!std::isfinite(val)) throw std::invalid_argument("invalid MM Position Setpoint ");
+
+  transport.send(setMMPositionFrame(val, ID)); 
+}
+void SparkMax::setVoltage(float val){
+  if (!std::isfinite(val)) throw std::invalid_argument("invalid Voltage Setpoint ");
+
+  transport.send(SetVoltageFrame(val, ID)); 
+}
+void SparkMax::setCurrent(float val){
+  if (!std::isfinite(val)) throw std::invalid_argument("invalid Current  Setpoint ");
+
+  transport.send(setCurrentFrame(val, ID)); 
+}
+void SparkMax::setEncoderPosition(float val){
+  if (!std::isfinite(val)) throw std::invalid_argument("invalid encoder Position (in rotations) ");
+
+  transport.send(setEncoderPositionFrame(val, ID)); 
 }
 
 uint8_t SparkMax::getID() const {
