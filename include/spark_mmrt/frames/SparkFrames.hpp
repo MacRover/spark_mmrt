@@ -16,8 +16,13 @@ constexpr uint8_t MANUFACTURER=  0x05; // Manufacturer ID for REV Robotics
 constexpr uint32_t STATUS0_BASE = 0x0205B800; 
 constexpr uint32_t STATUS1_BASE = 0x0205B840;
 constexpr uint32_t STATUS2_BASE = 0x0205B880;
-
-
+constexpr uint32_t STATUS3_BASE = 0x0205B8C0; 
+constexpr uint32_t STATUS4_BASE = 0x0205B900;
+constexpr uint32_t STATUS5_BASE = 0x0205B940;
+constexpr uint32_t STATUS6_BASE = 0x0205B980; 
+constexpr uint32_t STATUS7_BASE = 0x0205B9C0; 
+constexpr uint32_t STATUS8_BASE = 0x0205BA00;
+constexpr uint32_t STATUS9_BASE = 0x0205BA40;
 
 // apiClass , apiIndex from spark_mmrt/docs/spark-frames-2.0.0-dev.11
 struct Api { uint8_t cls; uint8_t idx; };
@@ -51,7 +56,14 @@ spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID);
 
 void status0Decoder(const std::array<uint8_t, 8> &data, Status0& s0);
 void status1Decoder(const std::array<uint8_t, 8> &data, Status1& s1);
-
+void status2Decoder(const std::array<uint8_t, 8> &data, Status2& s2);
+void status3Decoder(const std::array<uint8_t, 8> &data, Status3& s3);
+void status4Decoder(const std::array<uint8_t, 8> &data, Status4& s4);
+void status5Decoder(const std::array<uint8_t, 8> &data, Status5& s5);
+void status6Decoder(const std::array<uint8_t, 8> &data, Status6& s6);
+void status7Decoder(const std::array<uint8_t, 8> &data, Status7& s7);
+void status8Decoder(const std::array<uint8_t, 8> &data, Status8& s8);
+void status9Decoder(const std::array<uint8_t, 8> &data, Status9& s9);
 
 
 

@@ -17,7 +17,7 @@ static void WriteBytes(std::array<uint8_t,8> & payload, int startByte, const uin
 
 // BYTE ALINGNED VALUES
  static void packFloat32(std::array<uint8_t, 8> &data, int bitPos, float f){
-  const int NUMBYTES = 4; // 32 bits = 4 bytes 
+  const int NUMBYTES = 4;
   int startByte =  bitPos / 8; 
 
   uint32_t floatBits = 0;
@@ -35,8 +35,8 @@ static void WriteBytes(std::array<uint8_t,8> & payload, int startByte, const uin
 }
 // BYTE ALIGNED VALUES 
 static void packInt16(std::array<uint8_t,8> & data, int bitPos, int16_t I){
-  const int NUMBYTES = 2; // 2 bytes = 16 bits 
-  uint16_t intBits = uint16_t(I); // cast integer to unsigned 
+  const int NUMBYTES = 2;  
+  uint16_t intBits = uint16_t(I); 
   int startByte = bitPos / 8; 
 
   // extract each byte from intBits into int bytes[]
@@ -50,9 +50,9 @@ static void packInt16(std::array<uint8_t,8> & data, int bitPos, int16_t I){
 //NON BYTE ALIGNED VALUES 
 static void setBits(std::array<uint8_t, 8> & data, int bitPos, int bitLen, uint32_t val){
   for(int i = 0; i < bitLen; i++){
-    int currBit = bitPos + i; // find current bit num of total (32) 
-    int byte = currBit / 8; // find byte num (1, 2, 3, 4)
-    int bit = currBit % 8; // find  bit num withn each byte (eg. first byte second bit)
+    int currBit = bitPos + i;
+    int byte = currBit / 8; 
+    int bit = currBit % 8; 
 
     uint8_t bitMask = uint8_t(1u << bit); // mask the current bit 
     if((val & (1u << i)) != 0) data[byte] |= bitMask; // if the val bit is 1 set the data bit
@@ -82,6 +82,12 @@ static uint32_t getBits(const std::array<uint8_t,8> &data , int bitPos, int bitl
 static int32_t signExtend32(uint32_t x, int bitLen) {
   uint32_t m = 1u << (bitLen - 1);
   return int32_t((x ^ m) - m);
+}
+
+static float uInt32toFloat(uint32_t r){
+  float f;
+  std::memcpy(&f, &r, sizeof(f));
+  return f;
 }
 
 // Build a heartbeat CAN frame (8 bytes all 0xFF) using the Heartbeat arbitration ID
@@ -140,13 +146,13 @@ spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
 void status0Decoder(const  std::array<uint8_t, 8> &data, Status0& s0){
   // data is uint but applied output is int need to sign extend after building 
   int32_t aoRaw = signExtend32(getBits(data, 0, 16), 16); 
-  s0.appliedOutput = float(aoRaw) * Status0Scale::appliedOutputScale;
+  s0.appliedOutput = double(aoRaw) * Status0Scale::appliedOutputScale;
 
   uint32_t vRaw = getBits(data, 16, 12); 
-  s0.voltage = float(vRaw) * Status0Scale::voltageScale; 
+  s0.voltage = double(vRaw) * Status0Scale::voltageScale; 
 
   uint32_t iRaw = getBits(data, 28, 12);
-  s0.current = float(iRaw) * Status0Scale::currentScale; 
+  s0.current = double(iRaw) * Status0Scale::currentScale; 
 
   s0.motorTempC = uint8_t(getBits(data, 40, 8)); 
 
@@ -157,6 +163,128 @@ void status0Decoder(const  std::array<uint8_t, 8> &data, Status0& s0){
   s0.inverted = getBits(data, 52, 1); 
   s0.primaryHeartbeatLock = getBits(data, 53, 1);
 
+  //s0.sparkModel = getBits(data, 54, 4); // IDK IF ITS PUBLIC YET 
+
+
 }
 
-void status1Decoder(const std::array<uint8_t, 8> &data, Status1& s1){};
+void status1Decoder(const std::array<uint8_t, 8> &data, Status1& s1){
+  s1.otherFault = getBits(data, 0, 1); 
+  s1.motorTypeFault = getBits(data, 1, 1);
+  s1.sensorFault = getBits(data, 2, 1); 
+  s1.canFault = getBits(data, 3, 1);
+  s1.temperatureFault = getBits(data, 4, 1);
+  s1.drvFault = getBits(data, 5, 1);
+  s1.escEepromFault = getBits(data, 6, 1);
+  s1.firmwareFault = getBits(data, 7, 1);
+
+  s1.reservedActives = uint8_t(getBits(data, 8, 8)); 
+
+  s1.brownoutWarning = getBits(data, 16, 1); 
+  s1.overcurrentWarning = getBits(data, 17, 1); 
+  s1.escEepromWarning = getBits(data, 18, 1);
+  s1.extEepromWarning = getBits(data, 19, 1); 
+  s1.sensorWarning = getBits(data, 20, 1); 
+  s1.stallWarning = getBits(data, 21, 1); 
+  s1.hasResetWarning = getBits(data, 22, 1); 
+  s1.otherWarning = getBits(data, 23, 1); 
+
+  s1.otherStickyFault = getBits(data ,24, 1); 
+  s1.motorTypeStickyFault = getBits(data, 25, 1); 
+  s1.sensorStickyFault = getBits(data, 26, 1); 
+  s1.canStickyFault = getBits(data, 27, 1);
+  s1.temperatureStickyFault = getBits(data, 28, 1);
+  s1.drvStickyFault= getBits(data, 29, 1);
+  s1.escEepromStickyFault = getBits(data, 30, 1); 
+  s1.firmwareStickyFault = getBits(data, 31, 1); 
+
+  s1.reservedStickies = uint8_t(getBits(data, 32, 8)); 
+
+  s1.brownoutStickyWarning = getBits(data, 40, 1); 
+  s1.overcurrentStickyWarning = getBits(data, 41, 1);
+  s1.escEepromStickyWarning = getBits(data, 42, 1); 
+  s1.extEepromStickyWarning = getBits(data, 43, 1); 
+  s1.sensorStickyWarning = getBits(data, 44, 1);
+  s1.stallStickyWarning = getBits(data, 45, 1);
+  s1.hasResetStickyWarning = getBits(data, 46, 1);
+  s1.otherStickyWarning = getBits(data, 47, 1); 
+  s1.isFollower = getBits(data, 48, 1); 
+  s1.reserved = uint16_t(getBits(data, 49, 15));
+}
+
+
+void status2Decoder(const std::array<uint8_t, 8> &data, Status2& s2){
+  uint32_t vRaw = getBits(data, 0, 32);
+  s2.primaryEncoderVelocity = uInt32toFloat(vRaw);
+
+  uint32_t pRaw = getBits(data, 32, 32); 
+  s2.primaryEncoderPosition = uInt32toFloat(pRaw); 
+  
+}
+
+void status3Decoder(const std::array<uint8_t, 8> &data, Status3& s3){
+  uint32_t aVoltageRaw = getBits(data, 0, 10);   
+  s3.analogVoltage = double(aVoltageRaw) * Status3Scale::analogVoltageScale;
+
+  int32_t aVelocityRaw = signExtend32(getBits(data, 10, 22), 22);
+  s3.analogVelocity = double(aVelocityRaw) * Status3Scale::analogVelocityScale;
+
+  uint32_t aPositionRaw = getBits(data, 32, 32); 
+
+  s3.analogPosition = double(uInt32toFloat(aPositionRaw));
+}
+
+void status4Decoder(const std::array<uint8_t, 8> &data, Status4& s4){
+  uint32_t altEncV = getBits(data, 0, 32); 
+  s4.altEncoderVelocity = double(uInt32toFloat(altEncV));
+
+  uint32_t altEncP = getBits(data, 32, 32); 
+  s4.altEncoderPosition = double(uInt32toFloat(altEncP));
+}
+void status5Decoder(const std::array<uint8_t, 8> &data, Status5& s5){
+
+  uint32_t dutyCycleEncV = getBits(data, 0, 32); 
+  s5.dutyCycleEncVelocity = double(uInt32toFloat(dutyCycleEncV));
+
+  uint32_t dutyCycleEncP = getBits(data, 32, 32); 
+  s5.dutyCycleEncVPosition = double(uInt32toFloat(dutyCycleEncP)); 
+}
+
+void status6Decoder(const std::array<uint8_t, 8> &data, Status6& s6){
+
+  uint32_t unadjustDCRaw = getBits(data, 0, 16); 
+  s6.unadjustedDutyCycle = double(unadjustDCRaw) * Status6Scale::unadjustedDutyCycleScale;
+  
+  s6.dutyCyclePeriod = getBits(data, 16, 16); 
+  s6.dutyCycleNoSignal = getBits(data, 32, 1); 
+  s6.dutyCycleReserved = getBits(data, 33, 31); 
+
+}
+
+void status7Decoder(const std::array<uint8_t, 8> &data, Status7& s7){
+  uint32_t IAccRaw = getBits(data, 0, 32);
+  s7.IAccumalation = double(uInt32toFloat(IAccRaw));
+
+  s7.reserved = getBits(data, 32, 32); 
+
+}
+
+void status8Decoder(const std::array<uint8_t, 8> &data, Status8& s8){
+
+ uint32_t setPointRaw = getBits(data, 0, 32); 
+ s8.setPoint = double(uInt32toFloat(setPointRaw));
+
+ s8.isAtSetpoint = getBits(data, 32, 1); 
+ s8.selectedPIDSlot = getBits(data, 33, 4); 
+ s8.reserved = getBits(data, 37, 27); 
+
+} 
+
+void status9Decoder(const std::array<uint8_t, 8> &data, Status9& s9){
+  uint32_t MMPositionSPRaw = getBits(data, 0, 32); 
+  s9.MaxMotionPositionSetPoint = double(uInt32toFloat(MMPositionSPRaw));
+
+  uint32_t MMVelocitySPRaw = getBits(data, 32, 32); 
+  s9.MaxMotionVelocitySetPoint = double(uInt32toFloat(MMVelocitySPRaw));
+
+}

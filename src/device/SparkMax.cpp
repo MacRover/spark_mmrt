@@ -31,19 +31,67 @@ void SparkMax::processFrame(const spark_mmrt::can::CanFrame& f) {
     case STATUS0_BASE:  
       status0Decoder(f.data, s0);
       break;
-
     case STATUS1_BASE:
       status1Decoder(f.data, s1);
       break;
-
+    case STATUS2_BASE:
+      status2Decoder(f.data, s2);
+      break; 
+    case STATUS3_BASE:
+      status3Decoder(f.data, s3); 
+      break;
+    case STATUS4_BASE:
+      status4Decoder(f.data, s4); 
+      break;
+    case STATUS5_BASE:
+      status5Decoder(f.data, s5); 
+      break;
+    case STATUS6_BASE:
+      status6Decoder(f.data, s6); 
+      break;
+    case STATUS7_BASE:
+      status7Decoder(f.data, s7); 
+      break;
+    case STATUS8_BASE:
+      status8Decoder(f.data, s8); 
+      break;
+    case STATUS9_BASE:
+      status9Decoder(f.data, s9); 
+      break;
     default:
       break; 
   }
 }
 
-float SparkMax::getAppliedOutput() {return s0.appliedOutput;}
-float SparkMax::getVoltage() {return s0.voltage;}
-float SparkMax::getCurrent() { return s0.current;} 
-float SparkMax::getTemp() {return s0.motorTempC;}
+Status0 SparkMax::getStatus0() const {
+  return s0; 
+}
+Status1 SparkMax::getStatus1() const {
+  return s1; 
+}
+Status2 SparkMax::getStatus2() const {
+  return s2; 
+}
+Status3 SparkMax::getStatus3() const {
+  return s3; 
+}
+Status4 SparkMax::getStatus4() const {
+  return s4; 
+}
+Status5 SparkMax::getStatus5() const {
+  return s5; 
+}
+Status6 SparkMax::getStatus6() const {
+  return s6; 
+}
+Status7 SparkMax::getStatus7() const {
+  return s7; 
+}
+Status8 SparkMax::getStatus8() const {
+  return s8; 
+}
+Status9 SparkMax::getStatus9() const {
+  return s9; 
+}
 
 
