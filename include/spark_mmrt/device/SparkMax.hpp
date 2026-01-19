@@ -2,8 +2,12 @@
 #define SPARK_MMRT_DEVICE_SPARKMAX_HPP
 #include "spark_mmrt/can/SocketCanTransport.hpp"
 #include "spark_mmrt/frames/StatusFrames.hpp"
+#include "spark_mmrt/frames/SparkParams.hpp"
+#include "spark_mmrt/frames/SparkFrames.hpp"
 #include "spark_mmrt/can/CanFrame.hpp"
 #include <cstdint>
+#include <chrono>
+#include <optional>
 #include <unordered_map>
 
 
@@ -23,8 +27,10 @@ class SparkMax{
         Status7 s7;
         Status8 s8;
         Status9 s9; 
-
-
+        param::Params p; 
+        ParamWriteResponse pr;
+        void assignParam(param::Params& p, param::ParamID paramID, uint32_t value);
+        uint32_t readParamBaseFor(param::ParamID paramID);
 
 
     public:
@@ -43,6 +49,16 @@ class SparkMax{
         Status8 getStatus8() const;
         Status9 getStatus9() const;
 
+
+        param::Params getParams() const; 
+        InputMode getInputMode() const;
+        MotorType getMotorType() const;
+        IdleMode getIdleMode() const;
+        ControlType getControlType() const; 
+        std::optional<ParamWriteResponse> setIdleMode(IdleMode mode,  std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setControlType(ControlType type, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+
+
         void heartbeat();
         void setDutyCycle(float val);
         void setVelocity(float val); 
@@ -54,6 +70,14 @@ class SparkMax{
         void setEncoderPosition(float val); 
 
         void processFrame(const spark_mmrt::can::CanFrame & f); 
+
+        bool Flash(std::chrono::microseconds timeout); 
+        bool readParam(param::ParamID paramID, std::chrono::milliseconds timeout);
+        std::optional<ParamWriteResponse> writeParam(param::ParamID pid, uint32_t value, std::chrono::milliseconds timeout);
+
+        
+
+        
 
 
         uint8_t getID() const; 

@@ -6,6 +6,9 @@
 #include <cmath>
 #include <stdexcept>
 
+
+
+
 SparkMax::SparkMax(spark_mmrt::can::SocketCanTransport& transport_, uint8_t ID_)
   : ID(ID_), transport(transport_){}
 
@@ -43,7 +46,7 @@ void SparkMax::setMMPosition(float val){
 void SparkMax::setVoltage(float val){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid Voltage Setpoint ");
 
-  transport.send(SetVoltageFrame(val, ID)); 
+  transport.send(setVoltageFrame(val, ID)); 
 }
 void SparkMax::setCurrent(float val){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid Current  Setpoint ");
@@ -59,6 +62,43 @@ void SparkMax::setEncoderPosition(float val){
 uint8_t SparkMax::getID() const {
   return ID; 
 }
+
+std::optional<ParamWriteResponse>
+SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::milliseconds timeout)
+{
+  // 1) Send write
+  transport.send(paramWriteFrame(value, uint8_t(paramID), ID));
+
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+  while (std::chrono::steady_clock::now() < deadline) {     
+    auto f = transport.recv(std::chrono::microseconds{20000});
+    if (!f) continue;
+
+    const auto& frame = *f;
+    if (uint8_t(frame.arbId & 0x3F) != ID) continue;
+
+    uint32_t base = frame.arbId & ~0x3Fu;
+    if (base != PARAM_WRITE_RSP_BASE) continue; 
+
+    if (frame.dlc < 7) continue;
+
+    ParamWriteResponse rsp = paramWriteResponseDecode(frame.data);
+    if (rsp.param_id != uint8_t(paramID)) continue;
+
+    if (rsp.result_code == 0) { // write was successful 
+      assignParam(p, paramID, rsp.value);
+    }
+    if (paramID == param::PARAM_CANID){
+      ID = rsp.value; 
+    }
+
+    return rsp;
+  }
+
+  return std::nullopt;
+}
+
 
 void SparkMax::processFrame(const spark_mmrt::can::CanFrame& f) {
   uint32_t base = f.arbId & ~0x3Fu;  // mask out device bits 
@@ -99,6 +139,91 @@ void SparkMax::processFrame(const spark_mmrt::can::CanFrame& f) {
   }
 }
 
+bool SparkMax::Flash(std::chrono::microseconds timeout){
+  transport.send(persistParamFrame(ID));
+
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    auto f = transport.recv(std::chrono::microseconds{20000});
+    if (!f) continue;
+
+    const auto& frame = *f;
+    if (uint8_t(frame.arbId & 0x3F) != ID) continue;
+
+    uint32_t base = frame.arbId & ~0x3Fu;
+    if (base != PERSIST_PARAMS_RESPONSE_BASE) continue; 
+
+    if (frame.dlc < 1) return false;
+    return frame.data[0] == 0;
+  }
+  return false; // timed out
+} 
+ 
+uint32_t SparkMax::readParamBaseFor(param::ParamID paramID) {
+  uint8_t pairIndex = uint8_t(paramID) / 2;
+  Api readApi{15, pairIndex};
+  return makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, 0);
+}
+
+bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeout){
+  transport.send(readParamRTRFrame(paramID, ID));
+  const uint32_t expectedBase = readParamBaseFor(paramID);
+
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {     
+    auto f = transport.recv(std::chrono::microseconds{20000});
+    if (!f) continue;
+
+    const auto& frame = *f;
+    if (uint8_t(frame.arbId & 0x3F) != ID) continue;
+
+    uint32_t base = frame.arbId & ~0x3Fu;
+    if (base != expectedBase) continue; 
+
+    if (frame.dlc < 8) continue;
+
+    uint32_t val = decodeParam(frame.data, paramID);
+    assignParam(p, paramID, val);
+    return true;
+  }
+  return false; // timed out
+  
+}
+void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t value) {
+  switch (paramID) {
+    case param::PARAM_CANID:
+      p.CANID = value;
+      break;
+    case param::PARAM_InputMode:
+      p.InputMode = value;
+      break;
+    case param::PARAM_MotorType:
+      p.MotorType = value;
+      break;
+    case param::PARAM_CommAdvance:
+      p.CommAdvance = value;
+      break;
+    case param::PARAM_ControlType:
+      p.ControlType = value;
+      break;
+    case param::PARAM_IdleMode:
+      p.IdleMode = value;
+      break;
+    default:
+      break;
+  }
+}
+
+std::optional<ParamWriteResponse> SparkMax::setIdleMode(IdleMode mode, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_IdleMode, uint32_t(mode), timeout);
+
+}
+std::optional<ParamWriteResponse> SparkMax::setControlType(ControlType type, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ControlType, uint32_t(type), timeout);
+}
+
+
+
 Status0 SparkMax::getStatus0() const {
   return s0; 
 }
@@ -129,5 +254,23 @@ Status8 SparkMax::getStatus8() const {
 Status9 SparkMax::getStatus9() const {
   return s9; 
 }
+param::Params SparkMax::getParams() const{
+  return p;  
+}
+
+InputMode SparkMax::getInputMode() const{
+  return InputMode(p.InputMode); 
+}
+
+MotorType SparkMax::getMotorType() const{
+  return MotorType(p.MotorType);
+}
+IdleMode SparkMax::getIdleMode() const{
+  return IdleMode(p.IdleMode);
+}
+ControlType SparkMax::getControlType() const{
+  return ControlType(p.ControlType);
+}
+
 
 

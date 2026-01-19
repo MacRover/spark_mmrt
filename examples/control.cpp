@@ -3,6 +3,8 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <string>
+
 
 static void printStatus1(const Status1& s1) {
   std::cout << "[S1] faults:"
@@ -36,6 +38,54 @@ static void printStatus0(const Status0& s0) {
             << " hbLock=" << s0.primaryHeartbeatLock
             << "\n";
 }
+static const char* toString(InputMode m) {
+  switch (m) {
+    case PWM: return "PWM";
+    case CAN: return "CAN";
+    case USB: return "USB";
+    default:  return "UNKNOWN";
+  }
+}
+static const char* toString(MotorType m) {
+  switch (m) {
+    case BRUSHED: return "BRUSHED";
+    case BRUSHLESS:return "BRUSHLESS";
+    default: return "UNKNOWN";
+  }
+}
+static const char* toString(IdleMode m) {
+  switch (m) {
+    case COAST: return "COAST";
+    case BRAKE: return "BRAKE";
+    default: return "UNKNOWN";
+  }
+}
+static const char* toString(ControlType c) {
+  switch (c) {
+    case DUTY_CYCLE: return "DUTY_CYCLE";
+    case VELOCITY: return "VELOCITY";
+    case VOLTAGE: return "VOLTAGE";
+    case POSITION: return "POSITION";
+    case SMARTMOTION: return "SMARTMOTION";
+    case SMARTVELOCITY: return "SMARTVELOCITY";
+    case MAXMOTION_POSITION: return "MAXMOTION_POSITION";
+    case MAXMOTION_VELOCITY: return "MAXMOTION_VELOCITY";
+    default: return "UNKNOWN";
+  }
+}
+
+static void printParams(const SparkMax& m) {
+  const auto p = m.getParams();
+  std::cout << "[SparkMax ID=" << int(m.getID()) << "] Params:\n";
+  std::cout << "  CANID        = " << p.CANID << "\n";
+  std::cout << "  InputMode    = " << p.InputMode << " (" << toString(m.getInputMode()) << ")\n";
+  std::cout << "  MotorType    = " << p.MotorType << " (" << toString(m.getMotorType()) << ")\n";
+  std::cout << "  ControlType  = " << p.ControlType << " (" << toString(m.getControlType()) << ")\n";
+  std::cout << "  IdleMode     = " << p.IdleMode << " (" << toString(m.getIdleMode()) << ")\n";
+  std::cout << "  CommAdvance  = " << p.CommAdvance << "\n";
+}
+
+
 
 
 int main()
@@ -45,17 +95,42 @@ int main()
     spark_mmrt::can::SocketCanTransport transport; 
     transport.open("vcan0");  // open/bind the socket to interface "can0"
     // transport.open("vcan0");  VCAN TESTING 
-    SparkMax motor(transport, 1);
+    SparkMax motor1(transport, 1);
+    SparkMax motor2(transport, 2);
+
+    motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(100));
+    motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(100));
+    motor1.readParam(param::PARAM_IdleMode, std::chrono::milliseconds(100));
+    motor1.readParam(param::PARAM_InputMode, std::chrono::milliseconds(100));
+    motor1.readParam(param::PARAM_MotorType, std::chrono::milliseconds(100));
+
+    printParams(motor1);
+
+    auto rsp = motor1.writeParam(param::PARAM_CANID, 4, std::chrono::milliseconds{200});
+    if (!rsp || rsp->result_code != 0) {std::cout << "FAIL ID ";}
+
+
+    rsp = motor1.setIdleMode(IdleMode::COAST);
+    if (!rsp || rsp->result_code != 0) {std::cout << "FAIL idle ";}
+
+    rsp = motor1.setControlType(ControlType::POSITION); 
+    if (!rsp || rsp->result_code != 0) {std::cout << "FAIL control" << std::endl;}
+
+
+    motor1.Flash(std::chrono::microseconds(1000));
+
+    printParams(motor1);
+
+
 
     auto start = std::chrono::high_resolution_clock::now();  // Starting timestamp
     // Loop for 10 seconds 
     while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count() < 10)
     {
       // Enable and run motor
-      motor.heartbeat();
-      motor.setDutyCycle(0.05); // 5% 
-      motor.setVoltage(20.5);
-      motor.setCurrent(3.0);
+      motor1.heartbeat();
+      motor1.setDutyCycle(0.05); // 5% 
+      motor2.setDutyCycle(0.10); // 5% 
 
       auto f = transport.recv(std::chrono::microseconds{20000}); // Tested with CAN FRAME cansend vcan0 0205B801#5919667603140000
       if (!f) {
@@ -67,20 +142,32 @@ int main()
       auto &frame = *f; // currently in std::optional<canframe> need the canFrame part 
       uint8_t device = uint8_t(frame.arbId & 0x03F); 
 
-      if(device == motor.getID()){
-        motor.processFrame(frame); 
+      if(device == motor1.getID()){
+        motor1.processFrame(frame); 
         uint32_t base = frame.arbId & ~0x3Fu;
         switch (base) {
           case STATUS1_BASE: 
-            printStatus1(motor.getStatus1());
+            printStatus1(motor1.getStatus1());
             break;
 
           case STATUS0_BASE: 
-            printStatus0(motor.getStatus0());
+            printStatus0(motor1.getStatus0());
             break;
-      }
+        }
+      } else if (device == motor2.getID()) {
+        motor2.processFrame(frame);
+        uint32_t base = frame.arbId & ~0x3Fu;
+        switch (base) {
+          case STATUS1_BASE: 
+            printStatus1(motor2.getStatus1());
+            break;
+
+          case STATUS0_BASE: 
+            printStatus0(motor2.getStatus0());
+            break;
+        }
       // add other motors or might use a forloop or hashmap later idk 
-    }
+      }
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     
     }

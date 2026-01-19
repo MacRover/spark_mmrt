@@ -2,8 +2,8 @@
 #define SPARK_MMRT_FRAMES_SPARKFRAMES_HPP
 
 #include "spark_mmrt/can/CanFrame.hpp"
-#include "spark_mmrt/frames/SparkFrames.hpp"
 #include "spark_mmrt/frames/StatusFrames.hpp"
+#include "spark_mmrt/frames/SparkParams.hpp"
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -24,8 +24,18 @@ constexpr uint32_t STATUS7_BASE = 0x0205B9C0;
 constexpr uint32_t STATUS8_BASE = 0x0205BA00;
 constexpr uint32_t STATUS9_BASE = 0x0205BA40;
 
+constexpr uint32_t PERSIST_PARAMS_RESPONSE_BASE = 0x02050500; 
+constexpr uint32_t READ_PARAM_0_1_BASE = 0x02053C00;
+constexpr uint32_t PARAM_WRITE_RSP_BASE = 0x02053840;
+
 // apiClass , apiIndex from spark_mmrt/docs/spark-frames-2.0.0-dev.11
 struct Api { uint8_t cls; uint8_t idx; };
+struct ParamWriteResponse {
+  uint8_t  param_id;
+  uint8_t  param_type;     // 0 unused, 1 int, 2 uint, 3 float, 4 bool
+  uint32_t value;          // current value after write 
+  uint8_t  result_code;    // "0: Success, 1: Invalid ID, 2: Mismatched Type, 3: Access Mode, 4: Invalid, 5: Not Implemented",
+};
 
 // more to be added when more functions are implemented from doc 
 namespace api {
@@ -38,6 +48,10 @@ namespace api {
   constexpr Api voltageSetpoint{0,5};
   constexpr Api currentSetpoint{0,6};
   constexpr Api setEncoderPosition{10,0}; 
+  constexpr Api parameterWrite{14, 0}; 
+  constexpr Api ParamWriteResponse {14, 1};
+  constexpr Api presistParam{63, 15}; 
+  constexpr Api readParam0_1{15, 0};
 
 }
 
@@ -67,9 +81,18 @@ spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID);
 spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID);
 spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID);
 spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID);
-spark_mmrt::can::CanFrame SetVoltageFrame(float setPoint, uint8_t deviceID);
+spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID);
 spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID);
 spark_mmrt::can::CanFrame setEncoderPositionFrame(float position, uint8_t deviceID); 
+
+spark_mmrt::can::CanFrame paramWriteFrame(uint32_t val, uint8_t paramID, uint8_t deviceID);
+spark_mmrt::can::CanFrame paramWriteFloatFrame(float val, uint8_t paramID, uint8_t deviceID); 
+spark_mmrt::can::CanFrame persistParamFrame(uint8_t deviceID); 
+spark_mmrt::can::CanFrame readParam0_1RTRFrame(uint8_t deviceID); 
+spark_mmrt::can::CanFrame readParamRTRFrame(param::ParamID paramID, uint8_t deviceID);
+uint32_t decodeParam(const std::array<uint8_t, 8> &data, param::ParamID paramID);
+ParamWriteResponse paramWriteResponseDecode(const std::array<uint8_t, 8> &data);
+
 
 
 

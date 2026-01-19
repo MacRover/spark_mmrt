@@ -225,7 +225,7 @@ spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID){
   return frame;
 }
 
-spark_mmrt::can::CanFrame SetVoltageFrame(float setPoint, uint8_t deviceID){
+spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::voltageSetpoint, deviceID);
   auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
 
@@ -279,6 +279,67 @@ spark_mmrt::can::CanFrame setEncoderPositionFrame(float position, uint8_t device
   return frame;
 }
 
+spark_mmrt::can::CanFrame paramWriteFrame(uint32_t val, uint8_t paramID, uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::parameterWrite, deviceID);
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 5); 
+
+  frame.data.fill(0);
+
+  setBits(frame.data, 0, 8, paramID); 
+
+  setBits(frame.data, 8, 32, val); 
+
+  return frame; 
+}
+
+spark_mmrt::can::CanFrame paramWriteFloatFrame(float val, uint8_t paramID, uint8_t deviceID){
+  uint32_t bits = 0;
+  std::memcpy(&bits, &val, sizeof(val));
+  return paramWriteFrame(bits, paramID, deviceID);  
+}
+
+spark_mmrt::can::CanFrame persistParamFrame(uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::presistParam, deviceID);
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 2); 
+
+  frame.data.fill(0);
+
+  setBits(frame.data, 0, 16, 15011);
+
+  return frame; 
+}
+
+
+spark_mmrt::can::CanFrame readParam0_1RTRFrame(uint8_t deviceID){
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::readParam0_1, deviceID);
+  return spark_mmrt::can::CanFrame::RTR(ID); 
+}
+
+spark_mmrt::can::CanFrame readParamRTRFrame(param::ParamID paramID, uint8_t deviceID){
+  uint8_t pairIndex = uint8_t(paramID) / 2;
+  Api readApi{15, pairIndex};
+  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, deviceID);
+  return spark_mmrt::can::CanFrame::RTR(ID);
+}
+
+
+uint32_t decodeParam(const std::array<uint8_t, 8> &data, param::ParamID paramID){
+  const int offset = (uint8_t(paramID) % 2 == 0) ? 0 : 32; // either first half of data or second half 
+  uint32_t value = getBits(data, offset, 32);
+  return value; 
+}
+
+ParamWriteResponse paramWriteResponseDecode(const std::array<uint8_t, 8> &data){
+  ParamWriteResponse pr{};
+  pr.param_id = uint8_t(getBits(data, 0, 8));
+  pr.param_type = uint8_t(getBits(data, 8, 8));
+  pr.value = getBits(data, 16, 32);
+  pr.result_code = uint8_t(getBits(data, 48, 8));
+  return pr;
+}
+
+
+
 
 
 
@@ -295,7 +356,7 @@ spark_mmrt::can::CanFrame setEncoderPositionFrame(float position, uint8_t device
 // - bit  52: Inverted (bool)
 // - bit  53: Primary Heartbeat Lock (bool)
 // - bits 54..63: Reserved 
-void status0Decoder(const  std::array<uint8_t, 8> &data, Status0& s0){
+void status0Decoder(const std::array<uint8_t, 8> &data, Status0& s0){
   // data is uint but applied output is int need to sign extend after building 
   int32_t aoRaw = signExtend32(getBits(data, 0, 16), 16); 
   s0.appliedOutput = double(aoRaw) * Status0Scale::appliedOutputScale;
