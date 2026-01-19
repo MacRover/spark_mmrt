@@ -27,8 +27,7 @@ class SparkMax{
         Status7 s7;
         Status8 s8;
         Status9 s9; 
-        param::Params p; 
-        ParamWriteResponse pr;
+        param::Params p{}; 
         void assignParam(param::Params& p, param::ParamID paramID, uint32_t value);
         uint32_t readParamBaseFor(param::ParamID paramID);
 

@@ -93,7 +93,7 @@ int main()
   try {
     // Initialize SparkMax object with CAN interface (can0) and CAN ID 1 
     spark_mmrt::can::SocketCanTransport transport; 
-    transport.open("vcan0");  // open/bind the socket to interface "can0"
+    transport.open("can0");  // open/bind the socket to interface "can0"
     // transport.open("vcan0");  VCAN TESTING 
     SparkMax motor1(transport, 1);
     SparkMax motor2(transport, 2);
@@ -106,15 +106,15 @@ int main()
 
     printParams(motor1);
 
-    auto rsp = motor1.writeParam(param::PARAM_CANID, 4, std::chrono::milliseconds{200});
-    if (!rsp || rsp->result_code != 0) {std::cout << "FAIL ID ";}
+    //auto rsp = motor1.writeParam(param::PARAM_CANID, 1, std::chrono::milliseconds{200});
+    //if (!rsp || rsp->result_code != 0) {std::cout << u_int8_t(rsp->result_code )<< "FAIL ID ";}
 
 
-    rsp = motor1.setIdleMode(IdleMode::COAST);
-    if (!rsp || rsp->result_code != 0) {std::cout << "FAIL idle ";}
+    auto rsp = motor1.setIdleMode(IdleMode::BRAKE);
+    if (!rsp || rsp->result_code != 0) {std::cout <<  rsp->result_code << "FAIL idle ";}
 
-    rsp = motor1.setControlType(ControlType::POSITION); 
-    if (!rsp || rsp->result_code != 0) {std::cout << "FAIL control" << std::endl;}
+    // rsp = motor1.setControlType(ControlType::POSITION); 
+    // if (!rsp || rsp->result_code != 0) {std::cout << rsp->result_code << "FAIL control" << std::endl;}
 
 
     motor1.Flash(std::chrono::microseconds(1000));
@@ -129,8 +129,8 @@ int main()
     {
       // Enable and run motor
       motor1.heartbeat();
-      motor1.setDutyCycle(0.05); // 5% 
-      motor2.setDutyCycle(0.10); // 5% 
+      //motor1.setDutyCycle(0.05); // 5% 
+      //motor2.setDutyCycle(0.10); // 5% 
 
       auto f = transport.recv(std::chrono::microseconds{20000}); // Tested with CAN FRAME cansend vcan0 0205B801#5919667603140000
       if (!f) {

@@ -5,7 +5,7 @@
 
 #include <cmath>
 #include <stdexcept>
-
+#include <iostream> 
 
 
 
@@ -72,7 +72,7 @@ SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::millis
   const auto deadline = std::chrono::steady_clock::now() + timeout;
 
   while (std::chrono::steady_clock::now() < deadline) {     
-    auto f = transport.recv(std::chrono::microseconds{20000});
+    auto f = transport.recv(std::chrono::microseconds{200000});
     if (!f) continue;
 
     const auto& frame = *f;
@@ -80,11 +80,11 @@ SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::millis
 
     uint32_t base = frame.arbId & ~0x3Fu;
     if (base != PARAM_WRITE_RSP_BASE) continue; 
-
     if (frame.dlc < 7) continue;
 
     ParamWriteResponse rsp = paramWriteResponseDecode(frame.data);
     if (rsp.param_id != uint8_t(paramID)) continue;
+
 
     if (rsp.result_code == 0) { // write was successful 
       assignParam(p, paramID, rsp.value);
