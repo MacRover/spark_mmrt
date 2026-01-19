@@ -81,16 +81,16 @@ void SocketCanTransport::open(const std::string & interface_name)
       "Binding to interface failed: Another program may be using this interface.");
   }
 
-  //Filtering only sparkMax frames in the CAN network 
-  can_filter f{};
-  f.can_id = CAN_EFF_FLAG | (uint32_t(DEVICE_TYPE) << 24 | uint32_t(MANUFACTURER) << 16); // values to look for 
-  f.can_mask = CAN_EFF_FLAG | 0xFFFF0000u; // mask first 16 bits 
+  // //Filtering only sparkMax frames in the CAN network 
+  // can_filter f{};
+  // f.can_id = CAN_EFF_FLAG | (uint32_t(DEVICE_TYPE) << 24 | uint32_t(MANUFACTURER) << 16); // values to look for 
+  // f.can_mask = CAN_EFF_FLAG | 0xFFFF0000u; // mask first 16 bits 
 
-  if (::setsockopt(socket_fd_, SOL_CAN_RAW, CAN_RAW_FILTER, &f, sizeof(f)) < 0) {
-    ::close(socket_fd_); 
-    socket_fd_ = -1; 
-    throw std::system_error(errno, std::generic_category(), "setsockopt(CAN_RAW_FILTER) failed");
-  }
+  // if (::setsockopt(socket_fd_, SOL_CAN_RAW, CAN_RAW_FILTER, &f, sizeof(f)) < 0) {
+  //   ::close(socket_fd_); 
+  //   socket_fd_ = -1; 
+  //   throw std::system_error(errno, std::generic_category(), "setsockopt(CAN_RAW_FILTER) failed");
+  // }
 
 }
 

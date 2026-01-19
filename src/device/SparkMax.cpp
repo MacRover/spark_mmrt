@@ -8,7 +8,15 @@
 #include <iostream> 
 #include <iomanip>
 
-
+static void dumpFrame(const spark_mmrt::can::CanFrame& frame, const char* tag) {
+  std::cout << tag << " arbId=0x" << std::hex << frame.arbId
+            << " dlc=" << std::dec << int(frame.dlc) << " data=";
+  for (int i = 0; i < frame.dlc; ++i) {
+    std::cout << std::hex << std::setw(2) << std::setfill('0')
+              << int(frame.data[i]) << " ";
+  }
+  std::cout << std::dec << "\n";
+}
 
 SparkMax::SparkMax(spark_mmrt::can::SocketCanTransport& transport_, uint8_t ID_)
   : ID(ID_), transport(transport_){}
@@ -277,12 +285,4 @@ ControlType SparkMax::getControlType() const{
 
 
 
-static void dumpFrame(const spark_mmrt::can::CanFrame& frame, const char* tag) {
-  std::cout << tag << " arbId=0x" << std::hex << frame.arbId
-            << " dlc=" << std::dec << int(frame.dlc) << " data=";
-  for (int i = 0; i < frame.dlc; ++i) {
-    std::cout << std::hex << std::setw(2) << std::setfill('0')
-              << int(frame.data[i]) << " ";
-  }
-  std::cout << std::dec << "\n";
-}
+

@@ -98,29 +98,26 @@ int main()
     SparkMax motor1(transport, 1);
     SparkMax motor2(transport, 2);
 
-    auto readOrWarn = [&](param::ParamID id, const char* label) {
-      if (!motor1.readParam(id, std::chrono::milliseconds(200))) {
-        std::cout << "read failed: " << label << "\n";
-      }
-    };
-    readOrWarn(param::PARAM_CANID, "CANID");
-    readOrWarn(param::PARAM_ControlType, "ControlType");
-    readOrWarn(param::PARAM_IdleMode, "IdleMode");
-    readOrWarn(param::PARAM_InputMode, "InputMode");
-    readOrWarn(param::PARAM_MotorType, "MotorType");
+    motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(200));
+    motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(200));
+    motor1.readParam(param::PARAM_IdleMode, std::chrono::milliseconds(200));
+    motor1.readParam(param::PARAM_InputMode, std::chrono::milliseconds(200));
+    motor1.readParam(param::PARAM_MotorType, std::chrono::milliseconds(200));
 
     printParams(motor1);
 
-    //auto rsp = motor1.writeParam(param::PARAM_CANID, 1, std::chrono::milliseconds{200});
-    //if (!rsp || rsp->result_code != 0) {std::cout << u_int8_t(rsp->result_code )<< "FAIL ID ";}
+    auto rsp = motor1.writeParam(param::PARAM_CANID, 1, std::chrono::milliseconds{200});
+    if (!rsp || rsp->result_code != 0) {std::cout << u_int8_t(rsp->result_code )<< "FAIL ID ";}
 
 
-    auto rsp = motor1.setIdleMode(IdleMode::BRAKE);
-    if (!rsp) {
-      std::cout << "FAIL idle (timeout)\n";
-    } else if (rsp->result_code != 0) {
-      std::cout << int(rsp->result_code) << " FAIL idle\n";
-    }
+       rsp = motor1.setIdleMode(IdleMode::BRAKE);
+      if (!rsp) {
+        std::cout << "FAIL idle (timeout)\n";
+      } else {
+        std::cout << "idle rsp: param_id=" << int(rsp->param_id) << " value=" << rsp->value << " code=" << int(rsp->result_code) << "\n";
+      }
+
+
 
     // rsp = motor1.setControlType(ControlType::POSITION); 
     // if (!rsp || rsp->result_code != 0) {std::cout << rsp->result_code << "FAIL control" << std::endl;}
@@ -138,8 +135,8 @@ int main()
     {
       // Enable and run motor
       motor1.heartbeat();
-      //motor1.setDutyCycle(0.05); // 5% 
-      //motor2.setDutyCycle(0.10); // 5% 
+      motor1.setDutyCycle(0.00); // 5% 
+      motor2.setDutyCycle(0.20); // 5% 
 
       auto f = transport.recv(std::chrono::microseconds{20000}); // Tested with CAN FRAME cansend vcan0 0205B801#5919667603140000
       if (!f) {
