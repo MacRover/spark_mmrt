@@ -6,6 +6,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream> 
+#include <iomanip>
 
 
 
@@ -82,6 +83,7 @@ SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::millis
     if (base != PARAM_WRITE_RSP_BASE) continue; 
     if (frame.dlc < 7) continue;
 
+    dumpFrame(frame, "[ParamWriteRsp]");
     ParamWriteResponse rsp = paramWriteResponseDecode(frame.data);
     if (rsp.param_id != uint8_t(paramID)) continue;
 
@@ -182,6 +184,7 @@ bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeo
 
     if (frame.dlc < 8) continue;
 
+    dumpFrame(frame, "[ReadParamRsp]");
     uint32_t val = decodeParam(frame.data, paramID);
     assignParam(p, paramID, val);
     return true;
@@ -274,3 +277,12 @@ ControlType SparkMax::getControlType() const{
 
 
 
+static void dumpFrame(const spark_mmrt::can::CanFrame& frame, const char* tag) {
+  std::cout << tag << " arbId=0x" << std::hex << frame.arbId
+            << " dlc=" << std::dec << int(frame.dlc) << " data=";
+  for (int i = 0; i < frame.dlc; ++i) {
+    std::cout << std::hex << std::setw(2) << std::setfill('0')
+              << int(frame.data[i]) << " ";
+  }
+  std::cout << std::dec << "\n";
+}

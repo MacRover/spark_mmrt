@@ -98,11 +98,16 @@ int main()
     SparkMax motor1(transport, 1);
     SparkMax motor2(transport, 2);
 
-    motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(100));
-    motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(100));
-    motor1.readParam(param::PARAM_IdleMode, std::chrono::milliseconds(100));
-    motor1.readParam(param::PARAM_InputMode, std::chrono::milliseconds(100));
-    motor1.readParam(param::PARAM_MotorType, std::chrono::milliseconds(100));
+    auto readOrWarn = [&](param::ParamID id, const char* label) {
+      if (!motor1.readParam(id, std::chrono::milliseconds(200))) {
+        std::cout << "read failed: " << label << "\n";
+      }
+    };
+    readOrWarn(param::PARAM_CANID, "CANID");
+    readOrWarn(param::PARAM_ControlType, "ControlType");
+    readOrWarn(param::PARAM_IdleMode, "IdleMode");
+    readOrWarn(param::PARAM_InputMode, "InputMode");
+    readOrWarn(param::PARAM_MotorType, "MotorType");
 
     printParams(motor1);
 
@@ -111,7 +116,11 @@ int main()
 
 
     auto rsp = motor1.setIdleMode(IdleMode::BRAKE);
-    if (!rsp || rsp->result_code != 0) {std::cout <<  rsp->result_code << "FAIL idle ";}
+    if (!rsp) {
+      std::cout << "FAIL idle (timeout)\n";
+    } else if (rsp->result_code != 0) {
+      std::cout << int(rsp->result_code) << " FAIL idle\n";
+    }
 
     // rsp = motor1.setControlType(ControlType::POSITION); 
     // if (!rsp || rsp->result_code != 0) {std::cout << rsp->result_code << "FAIL control" << std::endl;}
