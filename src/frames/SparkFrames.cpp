@@ -310,25 +310,6 @@ spark_mmrt::can::CanFrame persistParamFrame(uint8_t deviceID){
 }
 
 
-spark_mmrt::can::CanFrame readParam0_1RTRFrame(uint8_t deviceID){
-  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::readParam0_1, deviceID);
-  return spark_mmrt::can::CanFrame::RTR(ID); 
-}
-
-spark_mmrt::can::CanFrame readParamRTRFrame(param::ParamID paramID, uint8_t deviceID){
-  uint8_t pairIndex = uint8_t(paramID) / 2;
-  Api readApi{15, pairIndex};
-  const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, deviceID);
-  return spark_mmrt::can::CanFrame::RTR(ID);
-}
-
-
-uint32_t decodeParam(const std::array<uint8_t, 8> &data, param::ParamID paramID){
-  const int offset = (uint8_t(paramID) % 2 == 0) ? 0 : 32; // either first half of data or second half 
-  uint32_t value = getBits(data, offset, 32);
-  return value; 
-}
-
 ParamWriteResponse paramWriteResponseDecode(const std::array<uint8_t, 8> &data){
   ParamWriteResponse pr{};
   pr.param_id = uint8_t(getBits(data, 0, 8));

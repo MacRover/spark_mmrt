@@ -29,7 +29,6 @@ class SparkMax{
         Status9 s9; 
         param::Params p{}; 
         void assignParam(param::Params& p, param::ParamID paramID, uint32_t value);
-        uint32_t readParamBaseFor(param::ParamID paramID);
 
 
     public:
@@ -73,7 +72,6 @@ class SparkMax{
         bool Flash(std::chrono::microseconds timeout); 
         bool readParam(param::ParamID paramID, std::chrono::milliseconds timeout);
         std::optional<ParamReadResponse> readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout);
-        bool readParam0And1(std::chrono::milliseconds timeout);
         std::optional<ParamWriteResponse> writeParam(param::ParamID pid, uint32_t value, std::chrono::milliseconds timeout);
 
         

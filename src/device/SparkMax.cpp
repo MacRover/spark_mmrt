@@ -157,19 +157,13 @@ bool SparkMax::Flash(std::chrono::microseconds timeout){
   return false; // timed out
 } 
  
-uint32_t SparkMax::readParamBaseFor(param::ParamID paramID) {
-  uint8_t pairIndex = uint8_t(paramID) / 2;
-  Api readApi{15, pairIndex};
-  return makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, 0);
-}
-
 bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeout){
   return readParamWithType(paramID, timeout).has_value();
 }
 
 std::optional<ParamReadResponse>
 SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout){
-  // SparkBase-style read: send a 0-DLC data frame to the parameter's arbId,
+  //  send a 0-DLC data frame to the parameter's arbId,
   // then decode the response where data[4] is the parameter type.
   Api readApi{48, uint8_t(paramID)};
   const uint32_t requestArbId = makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, ID);
@@ -212,31 +206,6 @@ SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds ti
   return std::nullopt; // timed out
 }
 
-bool SparkMax::readParam0And1(std::chrono::milliseconds timeout){
-  transport.send(readParam0_1RTRFrame(ID));
-  const uint32_t expectedBase = READ_PARAM_0_1_BASE;
-
-  auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (std::chrono::steady_clock::now() < deadline) {
-    auto f = transport.recv(std::chrono::microseconds{20000});
-    if (!f) continue;
-
-    const auto& frame = *f;
-    if (uint8_t(frame.arbId & 0x3F) != ID) continue;
-
-    uint32_t base = frame.arbId & ~0x3Fu;
-    if (base != expectedBase) continue;
-
-    if (frame.dlc < 8) continue;
-
-    uint32_t param0 = decodeParam(frame.data, param::PARAM_CANID);
-    uint32_t param1 = decodeParam(frame.data, param::PARAM_InputMode);
-    assignParam(p, param::PARAM_CANID, param0);
-    assignParam(p, param::PARAM_InputMode, param1);
-    return true;
-  }
-  return false; // timed out
-}
 void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t value) {
   switch (paramID) {
     case param::PARAM_CANID:

@@ -25,7 +25,6 @@ constexpr uint32_t STATUS8_BASE = 0x0205BA00;
 constexpr uint32_t STATUS9_BASE = 0x0205BA40;
 
 constexpr uint32_t PERSIST_PARAMS_RESPONSE_BASE = 0x02050500; 
-constexpr uint32_t READ_PARAM_0_1_BASE = 0x02053C00;
 constexpr uint32_t PARAM_WRITE_RSP_BASE = 0x02053840;
 
 // apiClass , apiIndex from spark_mmrt/docs/spark-frames-2.0.0-dev.11
@@ -55,8 +54,6 @@ namespace api {
   constexpr Api parameterWrite{14, 0}; 
   constexpr Api ParamWriteResponse {14, 1};
   constexpr Api presistParam{63, 15}; 
-  constexpr Api readParam0_1{15, 0};
-
 }
 
 // ArbID Layout: 
@@ -92,9 +89,6 @@ spark_mmrt::can::CanFrame setEncoderPositionFrame(float position, uint8_t device
 spark_mmrt::can::CanFrame paramWriteFrame(uint32_t val, uint8_t paramID, uint8_t deviceID);
 spark_mmrt::can::CanFrame paramWriteFloatFrame(float val, uint8_t paramID, uint8_t deviceID); 
 spark_mmrt::can::CanFrame persistParamFrame(uint8_t deviceID); 
-spark_mmrt::can::CanFrame readParam0_1RTRFrame(uint8_t deviceID); 
-spark_mmrt::can::CanFrame readParamRTRFrame(param::ParamID paramID, uint8_t deviceID);
-uint32_t decodeParam(const std::array<uint8_t, 8> &data, param::ParamID paramID);
 ParamWriteResponse paramWriteResponseDecode(const std::array<uint8_t, 8> &data);
 
 
