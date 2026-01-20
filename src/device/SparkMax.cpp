@@ -5,19 +5,7 @@
 
 #include <cmath>
 #include <stdexcept>
-#include <iostream> 
-#include <iomanip>
 #include <cstring>
-
-static void dumpFrame(const spark_mmrt::can::CanFrame& frame, const char* tag) {
-  std::cout << tag << " arbId=0x" << std::hex << frame.arbId
-            << " dlc=" << std::dec << int(frame.dlc) << " data=";
-  for (int i = 0; i < frame.dlc; ++i) {
-    std::cout << std::hex << std::setw(2) << std::setfill('0')
-              << int(frame.data[i]) << " ";
-  }
-  std::cout << std::dec << "\n";
-}
 
 SparkMax::SparkMax(spark_mmrt::can::SocketCanTransport& transport_, uint8_t ID_)
   : ID(ID_), transport(transport_){}
@@ -92,7 +80,6 @@ SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::millis
     if (base != PARAM_WRITE_RSP_BASE) continue; 
     if (frame.dlc < 7) continue;
 
-    dumpFrame(frame, "[ParamWriteRsp]");
     ParamWriteResponse rsp = paramWriteResponseDecode(frame.data);
     if (rsp.param_id != uint8_t(paramID)) continue;
 
@@ -182,6 +169,8 @@ bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeo
 
 std::optional<ParamReadResponse>
 SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout){
+  // SparkBase-style read: send a 0-DLC data frame to the parameter's arbId,
+  // then decode the response where data[4] is the parameter type.
   Api readApi{48, uint8_t(paramID)};
   const uint32_t requestArbId = makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, ID);
   transport.send(spark_mmrt::can::CanFrame::Data(requestArbId, 0));
@@ -196,7 +185,6 @@ SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds ti
     if (frame.arbId != requestArbId) continue;
     if (frame.dlc < 5) continue;
 
-    dumpFrame(frame, "[ReadParamRsp]");
     uint8_t type = frame.data[4];
     uint32_t raw = 0;
     switch (type) {
@@ -241,7 +229,6 @@ bool SparkMax::readParam0And1(std::chrono::milliseconds timeout){
 
     if (frame.dlc < 8) continue;
 
-    dumpFrame(frame, "[ReadParam0And1Rsp]");
     uint32_t param0 = decodeParam(frame.data, param::PARAM_CANID);
     uint32_t param1 = decodeParam(frame.data, param::PARAM_InputMode);
     assignParam(p, param::PARAM_CANID, param0);
@@ -249,32 +236,6 @@ bool SparkMax::readParam0And1(std::chrono::milliseconds timeout){
     return true;
   }
   return false; // timed out
-}
-
-std::optional<uint32_t>
-SparkMax::readParamLegacy(param::ParamID paramID, std::chrono::milliseconds timeout){
-  transport.send(readParamRTRFrame(paramID, ID));
-  const uint32_t expectedBase = readParamBaseFor(paramID);
-
-  auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (std::chrono::steady_clock::now() < deadline) {     
-    auto f = transport.recv(std::chrono::microseconds{20000});
-    if (!f) continue;
-
-    const auto& frame = *f;
-    if (uint8_t(frame.arbId & 0x3F) != ID) continue;
-
-    uint32_t base = frame.arbId & ~0x3Fu;
-    if (base != expectedBase) continue; 
-
-    if (frame.dlc < 8) continue;
-
-    dumpFrame(frame, "[ReadParamLegacyRsp]");
-    uint32_t val = decodeParam(frame.data, paramID);
-    assignParam(p, paramID, val);
-    return val;
-  }
-  return std::nullopt; // timed out
 }
 void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t value) {
   switch (paramID) {

@@ -73,7 +73,6 @@ class SparkMax{
         bool Flash(std::chrono::microseconds timeout); 
         bool readParam(param::ParamID paramID, std::chrono::milliseconds timeout);
         std::optional<ParamReadResponse> readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout);
-        std::optional<uint32_t> readParamLegacy(param::ParamID paramID, std::chrono::milliseconds timeout);
         bool readParam0And1(std::chrono::milliseconds timeout);
         std::optional<ParamWriteResponse> writeParam(param::ParamID pid, uint32_t value, std::chrono::milliseconds timeout);
 
