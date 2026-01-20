@@ -158,7 +158,7 @@ bool SparkMax::Flash(std::chrono::microseconds timeout){
 } 
  
 bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeout){
-  return readParamWithType(paramID, timeout).has_value();
+  return readParamWithType(paramID, timeout).has_value(); // if readParamwith type returned a paramRead Response then return
 }
 
 std::optional<ParamReadResponse>
