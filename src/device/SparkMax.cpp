@@ -200,6 +200,33 @@ bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeo
   return false; // timed out
   
 }
+
+bool SparkMax::readParam0And1(std::chrono::milliseconds timeout){
+  transport.send(readParam0_1RTRFrame(ID));
+  const uint32_t expectedBase = READ_PARAM_0_1_BASE;
+
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    auto f = transport.recv(std::chrono::microseconds{20000});
+    if (!f) continue;
+
+    const auto& frame = *f;
+    if (uint8_t(frame.arbId & 0x3F) != ID) continue;
+
+    uint32_t base = frame.arbId & ~0x3Fu;
+    if (base != expectedBase) continue;
+
+    if (frame.dlc < 8) continue;
+
+    dumpFrame(frame, "[ReadParam0And1Rsp]");
+    uint32_t param0 = decodeParam(frame.data, param::PARAM_CANID);
+    uint32_t param1 = decodeParam(frame.data, param::PARAM_InputMode);
+    assignParam(p, param::PARAM_CANID, param0);
+    assignParam(p, param::PARAM_InputMode, param1);
+    return true;
+  }
+  return false; // timed out
+}
 void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t value) {
   switch (paramID) {
     case param::PARAM_CANID:
