@@ -36,6 +36,10 @@ struct ParamWriteResponse {
   uint32_t value;          // current value after write 
   uint8_t  result_code;    // "0: Success, 1: Invalid ID, 2: Mismatched Type, 3: Access Mode, 4: Invalid, 5: Not Implemented",
 };
+struct ParamReadResponse {
+  uint8_t type;            // 0x01 uint, 0x02 float, 0x03 bool
+  uint32_t raw;            // raw 32-bit payload bits
+};
 
 // more to be added when more functions are implemented from doc 
 namespace api {

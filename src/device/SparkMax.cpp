@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <iostream> 
 #include <iomanip>
+#include <cstring>
 
 static void dumpFrame(const spark_mmrt::can::CanFrame& frame, const char* tag) {
   std::cout << tag << " arbId=0x" << std::hex << frame.arbId
@@ -176,29 +177,51 @@ uint32_t SparkMax::readParamBaseFor(param::ParamID paramID) {
 }
 
 bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeout){
-  transport.send(readParamRTRFrame(paramID, ID));
-  const uint32_t expectedBase = readParamBaseFor(paramID);
+  return readParamWithType(paramID, timeout).has_value();
+}
+
+std::optional<ParamReadResponse>
+SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout){
+  Api readApi{48, uint8_t(paramID)};
+  const uint32_t requestArbId = makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, ID);
+  transport.send(spark_mmrt::can::CanFrame::Data(requestArbId, 0));
 
   auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (std::chrono::steady_clock::now() < deadline) {     
+  while (std::chrono::steady_clock::now() < deadline) {
     auto f = transport.recv(std::chrono::microseconds{20000});
     if (!f) continue;
 
     const auto& frame = *f;
     if (uint8_t(frame.arbId & 0x3F) != ID) continue;
-
-    uint32_t base = frame.arbId & ~0x3Fu;
-    if (base != expectedBase) continue; 
-
-    if (frame.dlc < 8) continue;
+    if (frame.arbId != requestArbId) continue;
+    if (frame.dlc < 5) continue;
 
     dumpFrame(frame, "[ReadParamRsp]");
-    uint32_t val = decodeParam(frame.data, paramID);
-    assignParam(p, paramID, val);
-    return true;
+    uint8_t type = frame.data[4];
+    uint32_t raw = 0;
+    switch (type) {
+      case 0x01: { // uint32
+        for (int i = 0; i < 4; ++i) {
+          raw |= uint32_t(frame.data[i]) << (8 * i);
+        }
+        break;
+      }
+      case 0x02: { // float32
+        std::memcpy(&raw, frame.data.data(), sizeof(raw));
+        break;
+      }
+      case 0x03: { // bool
+        raw = frame.data[0] ? 1u : 0u;
+        break;
+      }
+      default:
+        continue;
+    }
+
+    assignParam(p, paramID, raw);
+    return ParamReadResponse{type, raw};
   }
-  return false; // timed out
-  
+  return std::nullopt; // timed out
 }
 
 bool SparkMax::readParam0And1(std::chrono::milliseconds timeout){
@@ -226,6 +249,32 @@ bool SparkMax::readParam0And1(std::chrono::milliseconds timeout){
     return true;
   }
   return false; // timed out
+}
+
+std::optional<uint32_t>
+SparkMax::readParamLegacy(param::ParamID paramID, std::chrono::milliseconds timeout){
+  transport.send(readParamRTRFrame(paramID, ID));
+  const uint32_t expectedBase = readParamBaseFor(paramID);
+
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {     
+    auto f = transport.recv(std::chrono::microseconds{20000});
+    if (!f) continue;
+
+    const auto& frame = *f;
+    if (uint8_t(frame.arbId & 0x3F) != ID) continue;
+
+    uint32_t base = frame.arbId & ~0x3Fu;
+    if (base != expectedBase) continue; 
+
+    if (frame.dlc < 8) continue;
+
+    dumpFrame(frame, "[ReadParamLegacyRsp]");
+    uint32_t val = decodeParam(frame.data, paramID);
+    assignParam(p, paramID, val);
+    return val;
+  }
+  return std::nullopt; // timed out
 }
 void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t value) {
   switch (paramID) {

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <string>
+#include <cstring>
 
 
 static void printStatus1(const Status1& s1) {
@@ -85,6 +86,32 @@ static void printParams(const SparkMax& m) {
   std::cout << "  CommAdvance  = " << p.CommAdvance << "\n";
 }
 
+static void printParamReadDebug(const char* name, const std::optional<ParamReadResponse>& rsp) {
+  if (!rsp) {
+    std::cout << "  " << name << " read timeout\n";
+    return;
+  }
+
+  std::cout << "  " << name << " type=0x" << std::hex << int(rsp->type)
+            << " raw=0x" << rsp->raw << std::dec;
+  if (rsp->type == 0x02) {
+    float f = 0.0f;
+    std::memcpy(&f, &rsp->raw, sizeof(f));
+    std::cout << " float=" << f;
+  } else if (rsp->type == 0x03) {
+    std::cout << " bool=" << (rsp->raw != 0);
+  }
+  std::cout << "\n";
+}
+
+static void printParamLegacyDebug(const char* name, const std::optional<uint32_t>& raw) {
+  if (!raw) {
+    std::cout << "  " << name << " legacy timeout\n";
+    return;
+  }
+  std::cout << "  " << name << " legacy raw=0x" << std::hex << *raw << std::dec << "\n";
+}
+
 
 
 
@@ -98,11 +125,30 @@ int main()
     SparkMax motor1(transport, 1);
     SparkMax motor2(transport, 2);
 
-    motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_IdleMode, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_InputMode, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_MotorType, std::chrono::milliseconds(200));
+    auto canidRsp = motor1.readParamWithType(param::PARAM_CANID, std::chrono::milliseconds(200));
+    auto controlRsp = motor1.readParamWithType(param::PARAM_ControlType, std::chrono::milliseconds(200));
+    auto idleRsp = motor1.readParamWithType(param::PARAM_IdleMode, std::chrono::milliseconds(200));
+    auto inputRsp = motor1.readParamWithType(param::PARAM_InputMode, std::chrono::milliseconds(200));
+    auto motorRsp = motor1.readParamWithType(param::PARAM_MotorType, std::chrono::milliseconds(200));
+
+    auto canidLegacy = motor1.readParamLegacy(param::PARAM_CANID, std::chrono::milliseconds(200));
+    auto controlLegacy = motor1.readParamLegacy(param::PARAM_ControlType, std::chrono::milliseconds(200));
+    auto idleLegacy = motor1.readParamLegacy(param::PARAM_IdleMode, std::chrono::milliseconds(200));
+    auto inputLegacy = motor1.readParamLegacy(param::PARAM_InputMode, std::chrono::milliseconds(200));
+    auto motorLegacy = motor1.readParamLegacy(param::PARAM_MotorType, std::chrono::milliseconds(200));
+
+    std::cout << "[Param Read Debug]\n";
+    printParamReadDebug("CANID", canidRsp);
+    printParamReadDebug("ControlType", controlRsp);
+    printParamReadDebug("IdleMode", idleRsp);
+    printParamReadDebug("InputMode", inputRsp);
+    printParamReadDebug("MotorType", motorRsp);
+    std::cout << "[Param Read Debug - Legacy]\n";
+    printParamLegacyDebug("CANID", canidLegacy);
+    printParamLegacyDebug("ControlType", controlLegacy);
+    printParamLegacyDebug("IdleMode", idleLegacy);
+    printParamLegacyDebug("InputMode", inputLegacy);
+    printParamLegacyDebug("MotorType", motorLegacy);
 
     printParams(motor1);
 
