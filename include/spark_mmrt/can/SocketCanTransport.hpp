@@ -10,6 +10,11 @@
 #include <linux/can.h>
 #include <net/if.h>
 
+typedef enum : uint8_t {
+  SPARK_DRIVETRAIN = 0,
+  SPARK_ARM,
+} SPARK_SUBSYSTEM_TYPE;
+
 namespace spark_mmrt::can {
 
 class SocketCanTransport
@@ -18,7 +23,7 @@ public:
   SocketCanTransport() {} // constructor
   ~SocketCanTransport(); // destructor 
 
-  void open(const std::string & interface_name); // create a CAN RAW socket for interface (can0)
+  void open(const std::string & interface_name, SPARK_SUBSYSTEM_TYPE system_type); // create a CAN RAW socket for interface (can0)
   void close(); 
   bool isOpen() const;
 
