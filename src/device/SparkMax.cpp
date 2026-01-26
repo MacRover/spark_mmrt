@@ -61,8 +61,7 @@ uint8_t SparkMax::getID() const {
   return ID; 
 }
 
-std::optional<ParamWriteResponse>
-SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::milliseconds timeout)
+std::optional<ParamWriteResponse> SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::milliseconds timeout)
 {
   // 1) Send write
   transport.send(paramWriteFrame(value, uint8_t(paramID), ID));
@@ -96,6 +95,14 @@ SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::millis
 
   return std::nullopt;
 }
+
+std::optional<ParamWriteResponse> SparkMax::writeParam(param::ParamID paramID, float value, std::chrono::milliseconds timeout){
+  uint32_t x; 
+  std::memcpy(&x, &value, sizeof(x));
+  return writeParam(paramID, x, timeout);
+}
+
+
 
 
 void SparkMax::processFrame(const spark_mmrt::can::CanFrame& f) {
@@ -163,8 +170,8 @@ bool SparkMax::readParam(param::ParamID paramID, std::chrono::milliseconds timeo
 
 std::optional<ParamReadResponse>
 SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout){
-  //  send a 0-DLC data frame to the parameter's arbId,
-  // then decode the response where data[4] is the parameter type.
+  //  send a 0 DLC data frame to the parameter's arbId,
+  // then decode the response where data[4] is parameter type
   Api readApi{48, uint8_t(paramID)};
   const uint32_t requestArbId = makeArbID(DEVICE_TYPE, MANUFACTURER, readApi, ID);
   transport.send(spark_mmrt::can::CanFrame::Data(requestArbId, 0));
@@ -205,8 +212,14 @@ SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds ti
   }
   return std::nullopt; // timed out
 }
+static float uInt32toFloat(uint32_t r){
+  float f;
+  std::memcpy(&f, &r, sizeof(f));
+  return f;
+}
 
 void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t value) {
+
   switch (paramID) {
     case param::PARAM_CANID:
       p.CANID = value;
@@ -226,6 +239,90 @@ void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t va
     case param::PARAM_IdleMode:
       p.IdleMode = value;
       break;
+    case param::PARAM_SensorType: 
+      p.SensorType = value; 
+      break; 
+    case param::PARAM_P0:
+      p.P = uInt32toFloat(value); 
+      break;
+    case param::PARAM_I0:
+      p.I = uInt32toFloat(value); 
+      break; 
+    case param::PARAM_D0:
+      p.D = uInt32toFloat(value); 
+      break;
+    case param::PARAM_F0:
+      p.F = uInt32toFloat(value);
+      break;
+    case param::PARAM_IZ0:
+      p.IZ = uInt32toFloat(value);
+      break;
+    case param::PARAM_DFilter0:
+      p.DFilter = uInt32toFloat(value);
+      break;
+    case param::PARAM_OutputMin0:
+      p.OutputMin = uInt32toFloat(value);
+      break;
+    case param::PARAM_OutputMax0:
+      p.OutputMax = uInt32toFloat(value);
+      break;
+    case param::PARAM_StatusPeriod0:
+      p.period0 = value; 
+      break;  
+    case param::PARAM_StatusPeriod1:
+      p.period1 = value;
+      break;
+    case param::PARAM_StatusPeriod2:
+      p.period2 = value;
+      break;
+    case param::PARAM_StatusPeriod3:
+      p.period3 = value;
+      break;
+    case param::PARAM_StatusPeriod4:
+      p.period4 = value;
+      break;
+    case param::PARAM_StatusPeriod5:
+      p.period5 = value;
+      break;
+    case param::PARAM_StatusPeriod6:
+      p.period6 = value;
+      break;
+    case param::PARAM_StatusPeriod7:
+      p.period7 = value;
+      break;
+    case param::PARAM_MaxVelMM0:
+      p.MaxVelMM = uInt32toFloat(value);
+      break;
+    case param::PARAM_MaxAccelMM0:
+      p.MaxAccelMM = uInt32toFloat(value);
+      break;
+    case param::PARAM_AllowedClosedLoopErrorMM0:
+      p.AllowedClosedLoopErrorMM = uInt32toFloat(value);
+      break;
+    case param::PARAM_ForceEnableStatus0:
+      p.ForceEnableStatus0 = (value != 0u);
+      break;
+    case param::PARAM_ForceEnableStatus1:
+      p.ForceEnableStatus1 = (value != 0u);
+      break;
+    case param::PARAM_ForceEnableStatus2:
+      p.ForceEnableStatus2 = (value != 0u);
+      break;
+    case param::PARAM_ForceEnableStatus3:
+      p.ForceEnableStatus3 = (value != 0u);
+      break;
+    case param::PARAM_ForceEnableStatus4:
+      p.ForceEnableStatus4 = (value != 0u);
+      break;
+    case param::PARAM_ForceEnableStatus5:
+      p.ForceEnableStatus5 = (value != 0u);
+      break;
+    case param::PARAM_ForceEnableStatus6:
+      p.ForceEnableStatus6 = (value != 0u);
+      break;
+    case param::PARAM_ForceEnableStatus7:
+      p.ForceEnableStatus7 = (value != 0u);
+      break;
     default:
       break;
   }
@@ -238,7 +335,94 @@ std::optional<ParamWriteResponse> SparkMax::setIdleMode(IdleMode mode, std::chro
 std::optional<ParamWriteResponse> SparkMax::setControlType(ControlType type, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_ControlType, uint32_t(type), timeout);
 }
+std::optional<ParamWriteResponse> SparkMax::setSensorType(SensorType type, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_SensorType, uint32_t(type), timeout); 
+}
 
+std::optional<ParamWriteResponse> SparkMax::setP(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_P0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setI(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_I0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setD(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_D0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setF(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_F0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setIZ(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_IZ0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setDFilter(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_DFilter0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setOutputMin(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_OutputMin0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setOutputMax(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_OutputMax0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setCANID(uint32_t ID,  std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_CANID, ID, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus0(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod0, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus1(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod1, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus2(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod2, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus3(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod3, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus4(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod4, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus5(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod5, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus6(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod6, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setStatus7(uint32_t val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_StatusPeriod7, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setMaxVelMM(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_MaxVelMM0, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setMaxAccelMM(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_MaxAccelMM0, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setAllowedClosedLoopErrorMM(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_AllowedClosedLoopErrorMM0, val, timeout); 
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus0(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus0, enabled ? 1u : 0u, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus1(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus1, enabled ? 1u : 0u, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus2(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus2, enabled ? 1u : 0u, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus3(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus3, enabled ? 1u : 0u, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus4(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus4, enabled ? 1u : 0u, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus5(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus5, enabled ? 1u : 0u, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus6(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus6, enabled ? 1u : 0u, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setForceEnableStatus7(bool enabled, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_ForceEnableStatus7, enabled ? 1u : 0u, timeout);
+}
 
 
 Status0 SparkMax::getStatus0() const {
@@ -287,6 +471,10 @@ IdleMode SparkMax::getIdleMode() const{
 }
 ControlType SparkMax::getControlType() const{
   return ControlType(p.ControlType);
+}
+
+SensorType SparkMax::getSensorType() const{
+  return SensorType(p.SensorType);
 }
 
 

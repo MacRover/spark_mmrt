@@ -82,7 +82,7 @@ static void printParams(const SparkMax& m) {
   std::cout << "  MotorType    = " << p.MotorType << " (" << toString(m.getMotorType()) << ")\n";
   std::cout << "  ControlType  = " << p.ControlType << " (" << toString(m.getControlType()) << ")\n";
   std::cout << "  IdleMode     = " << p.IdleMode << " (" << toString(m.getIdleMode()) << ")\n";
-  std::cout << "  CommAdvance  = " << p.CommAdvance << "\n";
+
 }
 
 
@@ -106,7 +106,7 @@ int main()
 
     printParams(motor1);
 
-    auto rsp = motor1.writeParam(param::PARAM_CANID, 1, std::chrono::milliseconds{200});
+    auto rsp = motor1.setCANID(1, std::chrono::milliseconds{200});
     if (!rsp || rsp->result_code != 0) {std::cout << u_int8_t(rsp->result_code )<< "FAIL ID ";}
 
 
