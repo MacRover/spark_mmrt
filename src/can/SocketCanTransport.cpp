@@ -28,7 +28,7 @@ SocketCanTransport::~SocketCanTransport() // Close the network
   }
 }
 
-void SocketCanTransport::open(const std::string & interface_name) 
+void SocketCanTransport::open(const std::string & interface_name, SPARK_SUBSYSTEM_TYPE system_type) 
 {
   if (isOpen()) {
     throw std::logic_error("SocketCanTransport is already open");
@@ -83,9 +83,9 @@ void SocketCanTransport::open(const std::string & interface_name)
 
   //Filtering only sparkMax frames in the CAN network 
   can_filter f{};
-  const uint32_t sparkPrefix = (uint32_t(DEVICE_TYPE) << 24) | (uint32_t(MANUFACTURER) << 16);
+  const uint32_t sparkPrefix = (uint32_t(DEVICE_TYPE) << 24) | (uint32_t(MANUFACTURER) << 16) | (uint32_t(system_type) << 4);
   f.can_id = CAN_EFF_FLAG | sparkPrefix; 
-  f.can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & 0xFFFF0000u); // match device/manufacturer, ignore RTR/ERR flags
+  f.can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & SPARK_CAN_MASK); // match device/manufacturer, ignore RTR/ERR flags
 
   if (::setsockopt(socket_fd_, SOL_CAN_RAW, CAN_RAW_FILTER, &f, sizeof(f)) < 0) {
     ::close(socket_fd_); 

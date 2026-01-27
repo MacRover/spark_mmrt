@@ -132,7 +132,7 @@ int main()
   try {
     // Initialize SparkMax object with CAN interface (can0) and CAN ID 1 
     spark_mmrt::can::SocketCanTransport transport; 
-    transport.open("can0");  // open/bind the socket to interface "can0"
+    transport.open("can0", SPARK_DRIVETRAIN);  // open/bind the socket to interface "can0"
     // transport.open("vcan0");  VCAN TESTING 
     SparkMax motor1(transport, 1);
     SparkMax motor2(transport, 2);
