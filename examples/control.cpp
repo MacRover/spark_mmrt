@@ -73,6 +73,16 @@ static const char* toString(ControlType c) {
     default: return "UNKNOWN";
   }
 }
+static const char* toString(SensorType s) {
+  switch (s) {
+    case NONE: return "NONE";
+    case MAIN_ENCODER: return "MAIN_ENCODER";
+    case ANALOG: return "ANALOG";
+    case ALT_ENCODER: return "ALT_ENCODER";
+    case DUTY_CYCLE: return "DUTY_CYCLE";
+    default: return "UNKNOWN";
+  }
+}
 
 static void printParams(const SparkMax& m) {
   const auto p = m.getParams();
@@ -82,6 +92,35 @@ static void printParams(const SparkMax& m) {
   std::cout << "  MotorType    = " << p.MotorType << " (" << toString(m.getMotorType()) << ")\n";
   std::cout << "  ControlType  = " << p.ControlType << " (" << toString(m.getControlType()) << ")\n";
   std::cout << "  IdleMode     = " << p.IdleMode << " (" << toString(m.getIdleMode()) << ")\n";
+  std::cout << "  CommAdvance  = " << p.CommAdvance << "\n";
+  std::cout << "  SensorType   = " << p.SensorType << " (" << toString(SensorType(p.SensorType)) << ")\n";
+  std::cout << "  P            = " << p.P << "\n";
+  std::cout << "  I            = " << p.I << "\n";
+  std::cout << "  D            = " << p.D << "\n";
+  std::cout << "  F            = " << p.F << "\n";
+  std::cout << "  IZ           = " << p.IZ << "\n";
+  std::cout << "  DFilter      = " << p.DFilter << "\n";
+  std::cout << "  OutputMin    = " << p.OutputMin << "\n";
+  std::cout << "  OutputMax    = " << p.OutputMax << "\n";
+  std::cout << "  period0      = " << p.period0 << "\n";
+  std::cout << "  period1      = " << p.period1 << "\n";
+  std::cout << "  period2      = " << p.period2 << "\n";
+  std::cout << "  period3      = " << p.period3 << "\n";
+  std::cout << "  period4      = " << p.period4 << "\n";
+  std::cout << "  period5      = " << p.period5 << "\n";
+  std::cout << "  period6      = " << p.period6 << "\n";
+  std::cout << "  period7      = " << p.period7 << "\n";
+  std::cout << "  MaxVelMM     = " << p.MaxVelMM << "\n";
+  std::cout << "  MaxAccelMM   = " << p.MaxAccelMM << "\n";
+  std::cout << "  AllowedCLEMM = " << p.AllowedClosedLoopErrorMM << "\n";
+  std::cout << "  ForceStatus0 = " << p.ForceEnableStatus0 << "\n";
+  std::cout << "  ForceStatus1 = " << p.ForceEnableStatus1 << "\n";
+  std::cout << "  ForceStatus2 = " << p.ForceEnableStatus2 << "\n";
+  std::cout << "  ForceStatus3 = " << p.ForceEnableStatus3 << "\n";
+  std::cout << "  ForceStatus4 = " << p.ForceEnableStatus4 << "\n";
+  std::cout << "  ForceStatus5 = " << p.ForceEnableStatus5 << "\n";
+  std::cout << "  ForceStatus6 = " << p.ForceEnableStatus6 << "\n";
+  std::cout << "  ForceStatus7 = " << p.ForceEnableStatus7 << "\n";
 
 }
 
