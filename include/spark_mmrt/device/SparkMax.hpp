@@ -29,6 +29,10 @@ class SparkMax{
         Status9 s9; 
         param::Params p{}; 
         void assignParam(param::Params& p, param::ParamID paramID, uint32_t value);
+        std::optional<ParamWriteResponse> writeParam(param::ParamID pid, uint32_t value, std::chrono::milliseconds timeout);
+        std::optional<ParamWriteResponse> writeParam(param::ParamID pid, float value, std::chrono::milliseconds timeout);
+        std::optional<ParamReadResponse> readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout);
+
 
 
     public:
@@ -53,8 +57,40 @@ class SparkMax{
         MotorType getMotorType() const;
         IdleMode getIdleMode() const;
         ControlType getControlType() const; 
+        SensorType getSensorType() const; 
+
+        std::optional<ParamWriteResponse> setCANID(uint32_t ID,  std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setIdleMode(IdleMode mode,  std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setControlType(ControlType type, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setSensorType(SensorType type, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setP(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setI(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setD(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setF(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setIZ(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setDFilter(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setOutputMin(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setOutputMax(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus0(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus1(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus2(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus3(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus4(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus5(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus6(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setStatus7(uint32_t val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setMaxVelMM(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setMaxAccelMM(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setAllowedClosedLoopErrorMM(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus0(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus1(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus2(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus3(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus4(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus5(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus6(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setForceEnableStatus7(bool enabled, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        
 
 
         void heartbeat();
@@ -71,8 +107,7 @@ class SparkMax{
 
         bool Flash(std::chrono::microseconds timeout); 
         bool readParam(param::ParamID paramID, std::chrono::milliseconds timeout);
-        std::optional<ParamReadResponse> readParamWithType(param::ParamID paramID, std::chrono::milliseconds timeout);
-        std::optional<ParamWriteResponse> writeParam(param::ParamID pid, uint32_t value, std::chrono::milliseconds timeout);
+       
 
         
 
