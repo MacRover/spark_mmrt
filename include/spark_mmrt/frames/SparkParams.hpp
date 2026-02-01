@@ -115,9 +115,9 @@ enum ControlType : uint32_t {
 enum SensorType : uint32_t {
     NONE, 
     MAIN_ENCODER,
-    ANALOG,
+    ANALOG_ENCODER,
     ALT_ENCODER,
-    DUTY_CYCLE
+    DUTY_CYCLE_ENCODER
 };
 
 enum MAXMotionPositionMode : uint32_t{
