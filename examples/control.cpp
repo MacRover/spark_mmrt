@@ -77,9 +77,9 @@ static const char* toString(SensorType s) {
   switch (s) {
     case NONE: return "NONE";
     case MAIN_ENCODER: return "MAIN_ENCODER";
-    case ANALOG: return "ANALOG";
+    case ANALOG_ENCODER: return "ANALOG_ENCODER";
     case ALT_ENCODER: return "ALT_ENCODER";
-    case DUTY_CYCLE: return "DUTY_CYCLE";
+    case DUTY_CYCLE_ENCODER: return "DUTY_CYCLE_ENCODER";
     default: return "UNKNOWN";
   }
 }
