@@ -11,7 +11,7 @@
 
 constexpr uint8_t DEVICE_TYPE = 0x02; // Device type for SPARK controllers
 constexpr uint8_t MANUFACTURER=  0x05; // Manufacturer ID for REV Robotics
-constexpr uint32_t SPARK_CAN_MASK = (0xFFFF0000u | 0x30); // Mask device type, manufacturer, and subsystem type
+constexpr uint32_t SPARK_CAN_MASK = (0xFFFF0000u | 0x8000 | 0x30); // Mask device type, manufacturer, and subsystem type
 
 //Status Frames ArbID 
 constexpr uint32_t STATUS0_BASE = 0x0205B800; 
