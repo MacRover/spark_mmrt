@@ -137,11 +137,11 @@ int main()
     SparkMax motor1(transport, 1);
     SparkMax motor2(transport, 2);
 
-    motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_IdleMode, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_InputMode, std::chrono::milliseconds(200));
-    motor1.readParam(param::PARAM_MotorType, std::chrono::milliseconds(200));
+    // motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(200));
+    // motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(200));
+    // motor1.readParam(param::PARAM_IdleMode, std::chrono::milliseconds(200));
+    // motor1.readParam(param::PARAM_InputMode, std::chrono::milliseconds(200));
+    // motor1.readParam(param::PARAM_MotorType, std::chrono::milliseconds(200));
 
     printParams(motor1);
 
