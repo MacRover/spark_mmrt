@@ -16,15 +16,7 @@ export const inputs = ["/can0/received_frames"];
 export const output = "/sparkmax/ui";
 
 const STATUS0_BASE = 0x0205b800;
-// const STATUS1_BASE = 0x0205b840; // disabled for slim payload
-// const STATUS2_BASE = 0x0205b880; // disabled for slim payload
-// const STATUS3_BASE = 0x0205b8c0; // disabled for slim payload
-// const STATUS4_BASE = 0x0205b900; // disabled for slim payload
 const STATUS5_BASE = 0x0205b940;
-// const STATUS6_BASE = 0x0205b980; // disabled for slim payload
-// const STATUS7_BASE = 0x0205b9c0; // disabled for slim payload
-// const STATUS8_BASE = 0x0205ba00; // disabled for slim payload
-// const STATUS9_BASE = 0x0205ba40; // disabled for slim payload
 
 const DEVICE_ID_MASK = 0x3f;
 const EXTENDED_ID_MASK = 0x1fffffff;
@@ -91,47 +83,40 @@ type SparkMaxUiMessage = {
 
 const stateByDevice = new Map<number, DeviceState>();
 
+function makeEmptyMetrics(): Metrics {
+  return {
+    voltageV: Number.NaN,
+    currentA: Number.NaN,
+    dutyCycleEncoderPosition: Number.NaN,
+  };
+}
+
 function asNumber(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "bigint") {
-    return Number(value);
-  }
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
   if (typeof value === "string") {
     const t = value.trim();
     const isHex = /^0x[0-9a-f]+$/i.test(t);
     const parsed = isHex ? Number.parseInt(t, 16) : Number(t);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
+    if (Number.isFinite(parsed)) return parsed;
   }
   return undefined;
 }
 
 function normalizeByte(value: unknown): number {
   const n = asNumber(value);
-  if (n === undefined) {
-    return 0;
-  }
-  if (n <= 0) {
-    return 0;
-  }
-  if (n >= 255) {
-    return 255;
-  }
+  if (n === undefined) return 0;
+  if (n <= 0) return 0;
+  if (n >= 255) return 255;
   return n & 0xff;
 }
 
 function parseByteString(value: string): number[] | undefined {
   const trimmed = value.trim();
-  if (!trimmed) {
-    return undefined;
-  }
+  if (!trimmed) return undefined;
+
   const compact = trimmed.replace(/[\s,_-]/g, "");
-  if (!/^[0-9a-f]+$/i.test(compact) || compact.length % 2 !== 0) {
-    return undefined;
-  }
+  if (!/^[0-9a-f]+$/i.test(compact) || compact.length % 2 !== 0) return undefined;
 
   const out: number[] = [];
   for (let i = 0; i < compact.length; i += 2) {
@@ -141,12 +126,8 @@ function parseByteString(value: string): number[] | undefined {
 }
 
 function asByteArray(value: unknown): number[] | undefined {
-  if (Array.isArray(value)) {
-    return value.map(normalizeByte);
-  }
-  if (typeof value === "string") {
-    return parseByteString(value);
-  }
+  if (Array.isArray(value)) return value.map(normalizeByte);
+  if (typeof value === "string") return parseByteString(value);
   if (ArrayBuffer.isView(value)) {
     const view = value as ArrayBufferView;
     const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
@@ -158,14 +139,10 @@ function asByteArray(value: unknown): number[] | undefined {
 function normalizeCanFrame(
   message: unknown,
 ): { arbId: number; data: number[] } | undefined {
-  if (!message || typeof message !== "object") {
-    return;
-  }
+  if (!message || typeof message !== "object") return;
 
   const msg = message as CanFrameLike;
-  if (msg.frame && typeof msg.frame === "object") {
-    return normalizeCanFrame(msg.frame);
-  }
+  if (msg.frame && typeof msg.frame === "object") return normalizeCanFrame(msg.frame);
 
   const rawId =
     asNumber(msg.arbId) ??
@@ -174,21 +151,17 @@ function normalizeCanFrame(
     asNumber(msg.canId) ??
     asNumber(msg.arbitration_id);
 
-  if (rawId === undefined) {
-    return;
-  }
+  if (rawId === undefined) return;
 
   const arbId = (rawId >>> 0) & EXTENDED_ID_MASK;
+
   const rawBytes = asByteArray(msg.data) ?? asByteArray(msg.bytes);
-  if (!rawBytes) {
-    return;
-  }
+  if (!rawBytes) return;
 
   const data = new Array<number>(8).fill(0);
   const len = Math.min(rawBytes.length, 8);
-  for (let i = 0; i < len; i += 1) {
-    data[i] = rawBytes[i];
-  }
+  for (let i = 0; i < len; i += 1) data[i] = rawBytes[i];
+
   return { arbId, data };
 }
 
@@ -227,45 +200,16 @@ function decodeStatus5(data: number[]): Status5 {
   };
 }
 
-function applyStatusUpdate(
-  base: number,
-  data: number[],
-  state: DeviceState,
-): string {
-  switch (base) {
-    case STATUS0_BASE:
-      state.status0 = decodeStatus0(data);
-      return "status0";
-    case STATUS5_BASE:
-      state.status5 = decodeStatus5(data);
-      return "status5";
-    default:
-      // Status1/2/3/4/6/7/8/9 intentionally ignored in slim mode.
-      return "";
-  }
-}
-
-function makeEmptyMetrics(): Metrics {
-  return {
-    voltageV: Number.NaN,
-    currentA: Number.NaN,
-    dutyCycleEncoderPosition: Number.NaN,
-  };
-}
-
 function buildMetrics(state: DeviceState): Metrics {
-  const metrics = makeEmptyMetrics();
-
+  const m = makeEmptyMetrics();
   if (state.status0) {
-    metrics.voltageV = state.status0.voltageV;
-    metrics.currentA = state.status0.currentA;
+    m.voltageV = state.status0.voltageV;
+    m.currentA = state.status0.currentA;
   }
-
   if (state.status5) {
-    metrics.dutyCycleEncoderPosition = state.status5.dutyCycleEncoderPosition;
+    m.dutyCycleEncoderPosition = state.status5.dutyCycleEncoderPosition;
   }
-
-  return metrics;
+  return m;
 }
 
 function deviceKey(deviceId: number): string {
@@ -291,15 +235,23 @@ function makeBaseMessage(event: ScriptEvent, arbId: number): SparkMaxUiMessage {
 
 export default function script(event: ScriptEvent): SparkMaxUiMessage {
   const out = makeBaseMessage(event, 0);
+
   const frame = normalizeCanFrame(event.message);
   if (!frame) {
     out.changedStatus = "ignored.invalidFrame";
     return out;
   }
+
   out.arbId = frame.arbId;
 
   const deviceId = frame.arbId & DEVICE_ID_MASK;
-  const base = frame.arbId & ~DEVICE_ID_MASK;
+  const base = frame.arbId & (EXTENDED_ID_MASK & ~DEVICE_ID_MASK);
+
+  // ✅ SLIM FILTER: ignore everything except status0 + status5
+  if (base !== STATUS0_BASE && base !== STATUS5_BASE) {
+    out.changedStatus = "ignored.nonSlimFrame";
+    return out;
+  }
 
   let state = stateByDevice.get(deviceId);
   if (!state) {
@@ -307,18 +259,19 @@ export default function script(event: ScriptEvent): SparkMaxUiMessage {
     stateByDevice.set(deviceId, state);
   }
 
-  const changedStatus = applyStatusUpdate(base, frame.data, state);
-  if (!changedStatus) {
-    out.changedStatus = "ignored.nonStatusFrame";
-    return out;
+  let changedStatus = "";
+  if (base === STATUS0_BASE) {
+    state.status0 = decodeStatus0(frame.data);
+    changedStatus = "status0";
+  } else {
+    state.status5 = decodeStatus5(frame.data);
+    changedStatus = "status5";
   }
 
+  // Only build per-device view after we accepted a frame we care about
   const devices: { [key: string]: SparkMaxUiDevice } = {};
   for (const [id, s] of stateByDevice.entries()) {
-    devices[deviceKey(id)] = {
-      deviceId: id,
-      metrics: buildMetrics(s),
-    };
+    devices[deviceKey(id)] = { deviceId: id, metrics: buildMetrics(s) };
   }
 
   out.valid = 1;
