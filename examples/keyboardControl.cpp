@@ -13,7 +13,7 @@
 
 namespace {
 
-constexpr uint8_t kMotorId = 17;
+constexpr uint8_t kMotorId = 16;
 constexpr float kActiveDuty = 0.05f;  // 5% duty command
 
 volatile std::sig_atomic_t g_running = 1;
@@ -84,6 +84,7 @@ int main() {
     std::cout << "Press Q to quit.\n";
 
     auto activeUntil = std::chrono::steady_clock::now();
+    int activeDirection = 0; 
     auto lastPrint = std::chrono::steady_clock::now();
 
     while (g_running) {
@@ -97,12 +98,18 @@ int main() {
           // We cannot read true key-release in this simple terminal loop.
           // Extend active window when key-repeat chars arrive.
           activeUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(120);
+          activeDirection  =1;
+        }
+        else if (c == 'S' || c == 's'){
+            activeUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(120);
+            activeDirection = -1; 
+
         }
       }
 
       const bool active = std::chrono::steady_clock::now() < activeUntil;
-      const float duty = active ? kActiveDuty : 0.0f;
-
+      if(!active) activeDirection = 0;
+      const float duty = active ? (kActiveDuty * static_cast<float>(activeDirection)) : 0.0f; 
       motor.heartbeat();
       motor.setDutyCycle(duty);
 

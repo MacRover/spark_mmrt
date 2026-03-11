@@ -71,7 +71,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--topic", default=None, help="Foxglove topic (default: /<iface>/received_frames)")
     p.add_argument("--host", default="0.0.0.0", help="WebSocket bind host")
     p.add_argument("--port", type=int, default=8765, help="WebSocket bind port")
-    p.add_argument("--print-every", type=int, default=100, help="Print every N frames (0 disables)")
+    p.add_argument("--print-every", type=int, default=10, help="Print every N frames (0 disables)")
     p.add_argument(
         "--receive-own",
         action="store_true",

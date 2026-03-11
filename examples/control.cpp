@@ -134,8 +134,8 @@ int main()
     spark_mmrt::can::SocketCanTransport transport; 
     transport.open("can0", SPARK_DRIVETRAIN);  // open/bind the socket to interface "can0"
     // transport.open("vcan0");  VCAN TESTING 
-    SparkMax motor1(transport, 1);
-    SparkMax motor2(transport, 2);
+    SparkMax motor1(transport, 16);
+    S//parkMax motor2(transport, 2);
 
     // motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(200));
     // motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(200));
@@ -143,18 +143,18 @@ int main()
     // motor1.readParam(param::PARAM_InputMode, std::chrono::milliseconds(200));
     // motor1.readParam(param::PARAM_MotorType, std::chrono::milliseconds(200));
 
-    printParams(motor1);
+    // printParams(motor1);
 
-    auto rsp = motor1.setCANID(1, std::chrono::milliseconds{200});
-    if (!rsp || rsp->result_code != 0) {std::cout << u_int8_t(rsp->result_code )<< "FAIL ID ";}
+    // auto rsp = motor1.setCANID(1, std::chrono::milliseconds{200});
+    // if (!rsp || rsp->result_code != 0) {std::cout << u_int8_t(rsp->result_code )<< "FAIL ID ";}
 
 
-       rsp = motor1.setIdleMode(IdleMode::BRAKE);
-      if (!rsp) {
-        std::cout << "FAIL idle (timeout)\n";
-      } else {
-        std::cout << "idle rsp: param_id=" << int(rsp->param_id) << " value=" << rsp->value << " code=" << int(rsp->result_code) << "\n";
-      }
+    //    rsp = motor1.setIdleMode(IdleMode::BRAKE);
+    //   if (!rsp) {
+    //     std::cout << "FAIL idle (timeout)\n";
+    //   } else {
+    //     std::cout << "idle rsp: param_id=" << int(rsp->param_id) << " value=" << rsp->value << " code=" << int(rsp->result_code) << "\n";
+    //   }
 
 
 
@@ -174,8 +174,8 @@ int main()
     {
       // Enable and run motor
       motor1.heartbeat();
-      motor1.setDutyCycle(0.00); // 5% 
-      motor2.setDutyCycle(0.20); // 5% 
+      motor1.setDutyCycle(0.05); // 5% 
+      //motor2.setDutyCycle(0.20); // 5% 
 
       auto f = transport.recv(std::chrono::microseconds{20000}); // Tested with CAN FRAME cansend vcan0 0205B801#5919667603140000
       if (!f) {
@@ -199,20 +199,20 @@ int main()
             printStatus0(motor1.getStatus0());
             break;
         }
-      } else if (device == motor2.getID()) {
-        motor2.processFrame(frame);
-        uint32_t base = frame.arbId & ~0x3Fu;
-        switch (base) {
-          case STATUS1_BASE: 
-            printStatus1(motor2.getStatus1());
-            break;
+      // } else if (device == motor2.getID()) {
+      //   motor2.processFrame(frame);
+      //   uint32_t base = frame.arbId & ~0x3Fu;
+      //   switch (base) {
+      //     case STATUS1_BASE: 
+      //       printStatus1(motor2.getStatus1());
+      //       break;
 
-          case STATUS0_BASE: 
-            printStatus0(motor2.getStatus0());
-            break;
-        }
-      // add other motors or might use a forloop or hashmap later idk 
-      }
+      //     case STATUS0_BASE:
+      //       printStatus0(motor2.getStatus0());
+      //       break;
+      //   }
+      // // add other motors or might use a forloop or hashmap later idk 
+      // }
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     
     }
