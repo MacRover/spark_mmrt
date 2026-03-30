@@ -6,20 +6,20 @@
 // ONLY STATUS 0 and 1 ARE ENABLED BY DEFAULT THE REST NEED TO BE ENABLED MANUALLY 
 
 struct Status0 {
-    double appliedOutput = 0.0;   // [-1, 1]
-    double voltage = 0.0;        
-    double current = 0.0;         
-    uint8_t motorTempC = 0;      
+    double appliedOutput;   // [-1, 1]
+    double voltage;        
+    double current;         
+    uint8_t motorTempC;      
 
     // Flags
-    bool hardForwardLimit = false;
-    bool hardReverseLimit = false;
-    bool softForwardLimit = false;
-    bool softReverseLimit = false;
-    bool inverted = false;
-    bool primaryHeartbeatLock = false;
+    bool hardForwardLimit;
+    bool hardReverseLimit;
+    bool softForwardLimit;
+    bool softReverseLimit;
+    bool inverted;
+    bool primaryHeartbeatLock;
 
-    uint8_t sparkModel = 0; // in new doc idk if we will need 
+    uint8_t sparkModel; // in new doc idk if we will need 
 
 
 
@@ -34,109 +34,106 @@ namespace Status0Scale {
 
 
 struct Status1 {
-  bool otherFault = false; // 0
-  bool motorTypeFault = false; //1
-  bool sensorFault = false; //  2
-  bool canFault = false; //  3
-  bool temperatureFault = false; //  4
-  bool drvFault = false; //  5
-  bool escEepromFault = false; //  6
-  bool firmwareFault = false; //  7
-  uint8_t reservedActives = 0;     //  8->15
+  bool otherFault; // 0
+  bool motorTypeFault; //1
+  bool sensorFault; //  2
+  bool canFault; //  3
+  bool temperatureFault; //  4
+  bool drvFault; //  5
+  bool escEepromFault; //  6
+  bool firmwareFault; //  7
+  uint8_t reservedActives;     //  8->15
 
-  bool brownoutWarning = false; //  16
-  bool overcurrentWarning = false; //  17
-  bool escEepromWarning = false; //  18
-  bool extEepromWarning = false; //  19
-  bool sensorWarning = false; //  20
-  bool stallWarning = false; //  21
-  bool hasResetWarning = false; //  22
-  bool otherWarning = false; //  23
+  bool brownoutWarning; //  16
+  bool overcurrentWarning; //  17
+  bool escEepromWarning; //  18
+  bool extEepromWarning; //  19
+  bool sensorWarning; //  20
+  bool stallWarning; //  21
+  bool hasResetWarning; //  22
+  bool otherWarning; //  23
 
-  bool otherStickyFault = false; //  24
-  bool motorTypeStickyFault = false; //  25
-  bool sensorStickyFault = false; //  26
-  bool canStickyFault = false; //  27
-  bool temperatureStickyFault = false; //  28
-  bool drvStickyFault = false; //  29
-  bool escEepromStickyFault = false; //  30
-  bool firmwareStickyFault = false; //  31
-  uint8_t reservedStickies = 0;     //  32->39
+  bool otherStickyFault; //  24
+  bool motorTypeStickyFault; //  25
+  bool sensorStickyFault; //  26
+  bool canStickyFault; //  27
+  bool temperatureStickyFault; //  28
+  bool drvStickyFault; //  29
+  bool escEepromStickyFault; //  30
+  bool firmwareStickyFault; //  31
+  uint8_t reservedStickies;     //  32->39
 
-  bool brownoutStickyWarning = false; //  40
-  bool overcurrentStickyWarning = false; //  41
-  bool escEepromStickyWarning = false; //  42
-  bool extEepromStickyWarning = false; //  43
-  bool sensorStickyWarning = false; //  44
-  bool stallStickyWarning = false; //  45
-  bool hasResetStickyWarning = false; //  46
-  bool otherStickyWarning = false; //  47
+  bool brownoutStickyWarning; //  40
+  bool overcurrentStickyWarning; //  41
+  bool escEepromStickyWarning; //  42
+  bool extEepromStickyWarning; //  43
+  bool sensorStickyWarning; //  44
+  bool stallStickyWarning; //  45
+  bool hasResetStickyWarning; //  46
+  bool otherStickyWarning; //  47
 
-  bool isFollower = false; //  48
-  uint16_t reserved = 0;     //  49->63 
+  bool isFollower; //  48
+  uint16_t reserved;     //  49->63 
 };
 
 
 struct Status2{
 
-  float primaryEncoderVelocity = 0.0f; //"By default, the unit is RPM, but it can be changed implicitly using the Velocity Conversion Factor parameter",
-  float primaryEncoderPosition = 0.0f; //"By default, the unit is rotations, but it can be changed implicitly using the Position Conversion Factor parameter",
+  float primaryEncoderVelocity; //"By default, the unit is RPM, but it can be changed implicitly using the Velocity Conversion Factor parameter",
+  float primaryEncoderPosition; //"By default, the unit is rotations, but it can be changed implicitly using the Position Conversion Factor parameter",
 
 
 };
 
 struct Status3{
-  double analogVoltage = 0.0; 
-  double analogVelocity = 0.0; //"By default, the unit is RPM, but it can be changed implicitly using the Analog Velocity Conversion Factor parameter",
-  double analogPosition = 0.0; // "By default, the unit is rotations, but it can be changed implicitly using the Analog Position Conversion Factor parameter",
-
-
-
-
+  double analogVoltage; 
+  double analogVelocity; //"By default, the unit is RPM, but it can be changed implicitly using the Analog Velocity Conversion Factor parameter",
+  double analogPosition; // "By default, the unit is rotations, but it can be changed implicitly using the Analog Position Conversion Factor parameter",
 };
+
 namespace Status3Scale {
   constexpr double analogVoltageScale = 0.0048973607038123f;
   constexpr double analogVelocityScale = 0.007812026887906498f;
 }
 
 struct Status4{
-  double altEncoderVelocity = 0.0; 
-  double altEncoderPosition = 0.0;
+  double altEncoderVelocity; 
+  double altEncoderPosition;
 };
 
 struct Status5{
-  double dutyCycleEncVelocity = 0.0;
-  double dutyCycleEncVPosition = 0.0; 
+  double dutyCycleEncVelocity;
+  double dutyCycleEncPosition; 
 };
 
 struct Status6{
-  double unadjustedDutyCycle = 0.0;
-  uint16_t dutyCyclePeriod = 0;
-  bool dutyCycleNoSignal = false;
+  double unadjustedDutyCycle;
+  uint16_t dutyCyclePeriod;
+  bool dutyCycleNoSignal;
 
-  uint32_t dutyCycleReserved = 0; 
+  uint32_t dutyCycleReserved; 
 };
 namespace Status6Scale{
   constexpr double unadjustedDutyCycleScale = 0.00001541161211566339;
 }
 
 struct Status7{
-  double IAccumalation = 0.0; 
-  uint32_t reserved = 0; 
+  double IAccumalation; 
+  uint32_t reserved; 
 };
 
 // in new doc idk if we will need 
 struct Status8{
-  double setPoint = 0.0;
-  bool isAtSetpoint = false;
-  uint8_t selectedPIDSlot = 0; 
-  uint32_t reserved = 0;  
+  double setPoint;
+  bool isAtSetpoint;
+  uint8_t selectedPIDSlot; 
+  uint32_t reserved;  
 };
 
 //LIKELY WILL NOT NEED IT SAYS 26.0.0 VERSION IMPLEMENTATION???
 struct Status9{
-  double MaxMotionPositionSetPoint = 0.0;
-  double MaxMotionVelocitySetPoint = 0.0;
+  double MaxMotionPositionSetPoint;
+  double MaxMotionVelocitySetPoint;
 
 };
 

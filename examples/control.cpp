@@ -135,7 +135,7 @@ int main()
     transport.open("can0", SPARK_DRIVETRAIN);  // open/bind the socket to interface "can0"
     // transport.open("vcan0");  VCAN TESTING 
     SparkMax motor1(transport, 16);
-    S//parkMax motor2(transport, 2);
+    //SparkMax motor2(transport, 2);
 
     // motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(200));
     // motor1.readParam(param::PARAM_ControlType, std::chrono::milliseconds(200));
@@ -212,7 +212,7 @@ int main()
       //       break;
       //   }
       // // add other motors or might use a forloop or hashmap later idk 
-      // }
+      }
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     
     }

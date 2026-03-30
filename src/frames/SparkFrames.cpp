@@ -441,7 +441,7 @@ void status5Decoder(const std::array<uint8_t, 8> &data, Status5& s5){
   s5.dutyCycleEncVelocity = double(uInt32toFloat(dutyCycleEncV));
 
   uint32_t dutyCycleEncP = getBits(data, 32, 32); 
-  s5.dutyCycleEncVPosition = double(uInt32toFloat(dutyCycleEncP)); 
+  s5.dutyCycleEncPosition = double(uInt32toFloat(dutyCycleEncP)); 
 }
 
 void status6Decoder(const std::array<uint8_t, 8> &data, Status6& s6){
