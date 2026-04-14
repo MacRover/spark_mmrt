@@ -1,5 +1,6 @@
 #include "spark_mmrt/device/SparkMax.hpp"
 #include "spark_mmrt/frames/SparkFrames.hpp"
+#include "spark_mmrt/device/roboRIO.hpp"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -132,9 +133,11 @@ int main()
   try {
     // Initialize SparkMax object with CAN interface (can0) and CAN ID 1 
     spark_mmrt::can::SocketCanTransport transport; 
-    transport.open("can0", SPARK_DRIVETRAIN);  // open/bind the socket to interface "can0"
-    // transport.open("vcan0");  VCAN TESTING 
+    // transport.open("can0");  // open/bind the socket to interface "can0"
+    transport.open("vcan0");  // VCAN TESTING 
     SparkMax motor1(transport, 16);
+    RoboRIO rio(transport);
+    
     //SparkMax motor2(transport, 2);
 
     // motor1.readParam(param::PARAM_CANID, std::chrono::milliseconds(200));
@@ -173,7 +176,8 @@ int main()
     while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count() < 10)
     {
       // Enable and run motor
-      motor1.heartbeat();
+      // motor1.heartbeat();
+      rio.heartbeat();
       motor1.setDutyCycle(0.05); // 5% 
       //motor2.setDutyCycle(0.20); // 5% 
 

@@ -81,6 +81,11 @@ void SocketCanTransport::open(const std::string & interface_name, SPARK_SUBSYSTE
       "Binding to interface failed: Another program may be using this interface.");
   }
 
+  // FRC CAN Schema
+  // -------------------------------------------------------------------------------------------------------------------------------------------------------
+  // | Device Type (Bits 28-24) | Manufacturer Code (Bits 23-16) | API Class (Bits 15-10) | Index (Bits 9-6) | Subsystem ID (Bits 5-4) | CAN ID (Bits 3-0) |
+  // -------------------------------------------------------------------------------------------------------------------------------------------------------
+
   //Filtering only sparkMax frames in the CAN network 
   can_filter f{};
   // We want to filter for upper API class messages only (MSB)
@@ -88,7 +93,10 @@ void SocketCanTransport::open(const std::string & interface_name, SPARK_SUBSYSTE
   const uint32_t sparkPrefix = (uint32_t(DEVICE_TYPE) << 24) | (uint32_t(MANUFACTURER) << 16) | 
                                (uint32_t(class_filter) << 10) | (uint32_t(system_type) << 4);
   f.can_id = CAN_EFF_FLAG | sparkPrefix; 
-  f.can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & SPARK_CAN_MASK); // match device/manufacturer, ignore RTR/ERR flags
+  f.can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & SPARK_CAN_MASK); // ignore RTR/ERR flags
+  if (system_type == SPARK_GENERIC) {
+    f.can_mask &= ~(0x30);
+  }
 
   if (::setsockopt(socket_fd_, SOL_CAN_RAW, CAN_RAW_FILTER, &f, sizeof(f)) < 0) {
     ::close(socket_fd_); 

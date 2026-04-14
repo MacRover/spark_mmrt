@@ -10,8 +10,8 @@
 
 
 constexpr uint8_t DEVICE_TYPE = 0x02; // Device type for SPARK controllers
-constexpr uint8_t MANUFACTURER=  0x05; // Manufacturer ID for REV Robotics
-constexpr uint32_t SPARK_CAN_MASK = (0xFFFF0000u | 0x8000 | 0x30); // Mask device type, manufacturer, and subsystem type
+constexpr uint8_t MANUFACTURER = 0x05; // Manufacturer ID for REV Robotics
+constexpr uint32_t SPARK_CAN_MASK = (0xFFFF0000u | 0x8000 | 0x30); // Mask device type, manufacturer, API class, and subsystem type
 
 //Status Frames ArbID 
 constexpr uint32_t STATUS0_BASE = 0x0205B800; 
@@ -55,6 +55,8 @@ namespace api {
   constexpr Api parameterWrite{14, 0}; 
   constexpr Api ParamWriteResponse {14, 1};
   constexpr Api presistParam{63, 15}; 
+
+  constexpr Api UniveralHeartbeat{6, 1};
 }
 
 // ArbID Layout: 
