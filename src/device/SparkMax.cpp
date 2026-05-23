@@ -8,7 +8,19 @@
 #include <cstring>
 
 SparkMax::SparkMax(spark_mmrt::can::SocketCanTransport& transport_, uint8_t ID_)
-  : ID(ID_), transport(transport_){}
+  : ID(ID_), transport(transport_)
+{
+  memset(&s0, 0, sizeof(s0));
+  memset(&s1, 0, sizeof(s1));
+  memset(&s2, 0, sizeof(s2));
+  memset(&s3, 0, sizeof(s3));
+  memset(&s4, 0, sizeof(s4));
+  memset(&s5, 0, sizeof(s5));
+  memset(&s6, 0, sizeof(s6));
+  memset(&s7, 0, sizeof(s7));
+  memset(&s8, 0, sizeof(s8));
+  memset(&s9, 0, sizeof(s9));
+}
 
 
 void SparkMax::heartbeat() {
