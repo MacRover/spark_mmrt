@@ -117,42 +117,42 @@ std::optional<ParamWriteResponse> SparkMax::writeParam(param::ParamID paramID, f
 
 
 
-void SparkMax::processFrame(const spark_mmrt::can::CanFrame& f) {
+int8_t SparkMax::processFrame(const spark_mmrt::can::CanFrame& f) {
   uint32_t base = f.arbId & ~0x3Fu;  // mask out device bits 
 
   switch (base) {
     case STATUS0_BASE:  
       status0Decoder(f.data, s0);
-      break;
+      return 0;
     case STATUS1_BASE:
       status1Decoder(f.data, s1);
-      break;
+      return 1;
     case STATUS2_BASE:
       status2Decoder(f.data, s2);
-      break; 
+      return 2;
     case STATUS3_BASE:
       status3Decoder(f.data, s3); 
-      break;
+      return 3;
     case STATUS4_BASE:
       status4Decoder(f.data, s4); 
-      break;
+      return 4;
     case STATUS5_BASE:
       status5Decoder(f.data, s5); 
-      break;
+      return 5;
     case STATUS6_BASE:
       status6Decoder(f.data, s6); 
-      break;
+      return 6;
     case STATUS7_BASE:
       status7Decoder(f.data, s7); 
-      break;
+      return 7;
     case STATUS8_BASE:
       status8Decoder(f.data, s8); 
-      break;
+      return 8;
     case STATUS9_BASE:
       status9Decoder(f.data, s9); 
-      break;
+      return 9;
     default:
-      break; 
+      return -1;
   }
 }
 
