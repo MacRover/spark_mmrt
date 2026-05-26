@@ -89,7 +89,7 @@ void SocketCanTransport::open(const std::string & interface_name, SPARK_SUBSYSTE
   //Filtering only sparkMax frames in the CAN network 
   can_filter f{};
   // We want to filter for upper API class messages only (MSB)
-  const uint8_t class_filter = (1 << 5);
+  const uint8_t class_filter = (1 << 3) | (1 << 2);
   const uint32_t sparkPrefix = (uint32_t(DEVICE_TYPE) << 24) | (uint32_t(MANUFACTURER) << 16) | 
                                (uint32_t(class_filter) << 10) | (uint32_t(system_type) << 4);
   f.can_id = CAN_EFF_FLAG | sparkPrefix; 
