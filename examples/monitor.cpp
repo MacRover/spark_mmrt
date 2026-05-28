@@ -90,9 +90,17 @@ void printStatus8(WINDOW *win, const Status8& s8, uint8_t& ridx, uint8_t cidx)
     ridx++;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     spark_mmrt::can::SocketCanTransport transport;
-    transport.open(CAN_INTERFACE);
+    if (argc > 1)
+    {
+        std::string interface = argv[1];
+        transport.open(interface);
+    }
+    else
+    {
+        transport.open(CAN_INTERFACE);
+    }
 
     uint8_t id_digits = 0;
     uint8_t can_id = 0;
