@@ -103,19 +103,12 @@ class SparkMax{
         void setCurrent(float val);
         void setEncoderPosition(float val); 
 
-        void processFrame(const spark_mmrt::can::CanFrame & f); 
+        int8_t processFrame(const spark_mmrt::can::CanFrame & f); 
 
         bool Flash(std::chrono::microseconds timeout); 
         bool readParam(param::ParamID paramID, std::chrono::milliseconds timeout);
-       
 
-        
-
-        
-
-
-        uint8_t getID() const; 
-
+        uint8_t getID() const;
 };
 
 #endif

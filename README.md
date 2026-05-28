@@ -1,13 +1,14 @@
 # MMRT SparkMAX Library
-MMRT's CAN Library for controlling REV Robotics SparkMAX motor controller
+MMRT's Library for controlling REV Robotics SparkMAX motor controller, supported on firmware versions 25.0.X. This has been tested and confirmed to work on 25.0.4.
 
+This repository also contains example applications that test the library's APIs extensively as well as useful interfaces for servicing and debugging SparkMAX devices through CAN. You can find these in the `examples/` directory.
 
-current instructions to run control.cpp
+## Building
+To compile all of the example applications, run `make` in the base directory. You can also build a specific target by passing the name as an argument:
 
-g++ -std=c++17 -I./spark_mmrt/include   ./spark_mmrt/examples/control.cpp   ./spark_mmrt/src/can/SocketCanTransport.cpp   ./spark_mmrt/src/device/SparkMax.cpp   ./spark_mmrt/src/frames/SparkFrames.cpp   -o control
-
-g++ -std=c++17 -I./spark_mmrt/include   ./spark_mmrt/examples/keyboard_wd_motor17.cpp   ./spark_mmrt/src/can/SocketCanTransport.cpp   ./spark_mmrt/src/device/SparkMax.cpp   ./spark_mmrt/src/frames/SparkFrames.cpp   -o keyboard_wd_motor17
-
-
-then 
-./control
+```bash 
+make <TARGET_NAME>
+# build control.cpp for example
+make control
+```
+Executables are stored in the `bin/` folder.
