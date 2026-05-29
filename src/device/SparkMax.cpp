@@ -73,6 +73,10 @@ uint8_t SparkMax::getID() const {
   return ID; 
 }
 
+void SparkMax::setInternalCANID(uint8_t ID_) {
+  ID = ID_;
+}
+
 std::optional<ParamWriteResponse> SparkMax::writeParam(param::ParamID paramID, uint32_t value, std::chrono::milliseconds timeout)
 {
   // 1) Send write
