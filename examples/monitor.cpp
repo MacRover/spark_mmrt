@@ -109,6 +109,22 @@ void printStatus8(WINDOW *win, const Status8& s8, uint8_t& ridx, uint8_t cidx)
     ridx++;
 }
 
+void printParams(WINDOW *win, const param::Params& p, uint8_t& ridx, uint8_t cidx)
+{
+    std::string controlTypes[8] = {"DUTY_CYCLE", "VELOCITY", "VOLTAGE", "POSITION", 
+        "SMARTMOTION", "SMARTVELOCITY", "MAXMOTION_POSITION", "MAXMOTION_VELOCITY"};
+    std::string sensorTypes[5] = {"NONE", "PRIMARY", "ANALOG", "ALTERNATE", "DUTY_CYCLE"};
+
+    mvwprintw(win, ridx++, cidx, "Control Type: %s", controlTypes[p.ControlType].c_str());
+    mvwprintw(win, ridx++, cidx, "Sensor Feedback Type: %s", sensorTypes[p.SensorType].c_str());
+    mvwprintw(win, ridx++, cidx, "Primary Position Factor: %.4f", p.posFactor);
+    mvwprintw(win, ridx++, cidx, "Primary Velocity Factor: %.4f", p.velFactor);
+    mvwprintw(win, ridx++, cidx, "Duty Cycle Position Factor: %.4f", p.dutyCyclePosFactor);
+    mvwprintw(win, ridx++, cidx, "Duty Cycle Velocity Factor: %.4f", p.dutyCycleVelFactor);
+    mvwprintw(win, ridx++, cidx, "Duty Cycle Inverted: %s", p.dutyCycleInverted ? "YES" : "NO");
+    ridx++;
+}
+
 bool enableSelectedStatus(SparkMax& s, bool enabled, uint8_t statusNum)
 {
     std::optional<ParamWriteResponse> response;
@@ -187,8 +203,12 @@ int main(int argc, char *argv[]) {
         init_pair(WHITE_BACKGROUND_PAIR, COLOR_BLACK, COLOR_WHITE);
     }
 
+    bool deviceChanged = false;
     std::vector<bool> updated(10, false);
+    bool paramsUpdated = false;
     uint8_t status_cursor = 0;
+    param::Params params;
+    memset(&params, 0, sizeof(params));
 
     while (transport.isOpen())
     {
@@ -222,16 +242,34 @@ int main(int argc, char *argv[]) {
             else if (id_digits < 2 && '0' <= ch && ch <= '9')
             {
                 can_id = can_id * 10 + (ch - '0');
-                sparkmax.setInternalCANID(can_id);
-                updated.assign(updated.size(), false);
+                deviceChanged = true;
                 id_digits++;
             }
             else if (id_digits > 0 && ch == KEY_BACKSPACE)
             {
                 can_id = can_id / 10;
+                deviceChanged = true;
+                id_digits--;
+            }
+
+            if (deviceChanged)
+            {
+                deviceChanged = false;
                 sparkmax.setInternalCANID(can_id);
                 updated.assign(updated.size(), false);
-                id_digits--;
+
+                paramsUpdated = (sparkmax.readParam(param::PARAM_PosConversionFactor, std::chrono::milliseconds(100)) &&
+                    sparkmax.readParam(param::PARAM_VelConversionFactor, std::chrono::milliseconds(100)) &&
+                    sparkmax.readParam(param::PARAM_DutyCyclePosConversionFactor, std::chrono::milliseconds(100)) &&
+                    sparkmax.readParam(param::PARAM_DutyCycleVelConversionFactor, std::chrono::milliseconds(100)) &&
+                    sparkmax.readParam(param::PARAM_DutyCycleInverted, std::chrono::milliseconds(100)) &&
+                    sparkmax.readParam(param::PARAM_ControlType, std::chrono::milliseconds(100)) &&
+                    sparkmax.readParam(param::PARAM_SensorType, std::chrono::milliseconds(100)));
+                
+                if (paramsUpdated)
+                {
+                    params = sparkmax.getParams();
+                }
             }
         }
 
@@ -286,6 +324,8 @@ int main(int argc, char *argv[]) {
         HIGHLIGHT_VALIDITY(updated[6], printStatus6(main_win, s6, rowIdx, colIdx));
         HIGHLIGHT_VALIDITY(updated[7], printStatus7(main_win, s7, rowIdx, colIdx));
         HIGHLIGHT_VALIDITY(updated[8], printStatus8(main_win, s8, rowIdx, colIdx));
+
+        HIGHLIGHT_VALIDITY(paramsUpdated, printParams(main_win, params, rowIdx, colIdx));
 
         if (has_colors())
         {

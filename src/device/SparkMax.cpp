@@ -20,6 +20,7 @@ SparkMax::SparkMax(spark_mmrt::can::SocketCanTransport& transport_, uint8_t ID_)
   memset(&s7, 0, sizeof(s7));
   memset(&s8, 0, sizeof(s8));
   memset(&s9, 0, sizeof(s9));
+  memset(&p, 0, sizeof(p));
 }
 
 
@@ -202,25 +203,12 @@ SparkMax::readParamWithType(param::ParamID paramID, std::chrono::milliseconds ti
     if (frame.arbId != requestArbId) continue;
     if (frame.dlc < 5) continue;
 
+    // Types don't appear to be consistent across all parameters (thanks REV)
+    // Do not rely on this byte to infer parameter types, instead look at assignParam
     uint8_t type = frame.data[4];
     uint32_t raw = 0;
-    switch (type) {
-      case 0x01: { // uint32
-        for (int i = 0; i < 4; ++i) {
-          raw |= uint32_t(frame.data[i]) << (8 * i);
-        }
-        break;
-      }
-      case 0x02: { // float32
-        std::memcpy(&raw, frame.data.data(), sizeof(raw));
-        break;
-      }
-      case 0x03: { // bool
-        raw = frame.data[0] ? 1u : 0u;
-        break;
-      }
-      default:
-        continue;
+    for (int i = 0; i < 4; ++i) {
+      raw |= uint32_t(frame.data[i]) << (8 * i);
     }
 
     assignParam(p, paramID, raw);
@@ -281,6 +269,21 @@ void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t va
       break;
     case param::PARAM_OutputMax0:
       p.OutputMax = uInt32toFloat(value);
+      break;
+    case param::PARAM_PosConversionFactor:
+      p.posFactor = uInt32toFloat(value);
+      break;
+    case param::PARAM_VelConversionFactor:
+      p.velFactor = uInt32toFloat(value);
+      break;
+    case param::PARAM_DutyCyclePosConversionFactor:
+      p.dutyCyclePosFactor = uInt32toFloat(value);
+      break;
+    case param::PARAM_DutyCycleVelConversionFactor:
+      p.dutyCycleVelFactor = uInt32toFloat(value);
+      break;
+    case param::PARAM_DutyCycleInverted:
+      p.dutyCycleInverted = value;
       break;
     case param::PARAM_StatusPeriod0:
       p.period0 = value; 

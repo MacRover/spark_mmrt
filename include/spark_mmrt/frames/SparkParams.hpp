@@ -24,6 +24,11 @@ namespace param{
         PARAM_DFilter0 = 18,
         PARAM_OutputMin0 = 19,
         PARAM_OutputMax0 = 20,
+        PARAM_PosConversionFactor = 112,
+        PARAM_VelConversionFactor = 113,
+        PARAM_DutyCyclePosConversionFactor = 139,
+        PARAM_DutyCycleVelConversionFactor = 140,
+        PARAM_DutyCycleInverted = 141,
         PARAM_StatusPeriod0 = 158,
         PARAM_StatusPeriod1 = 159,
         PARAM_StatusPeriod2 = 160,
@@ -60,7 +65,12 @@ namespace param{
         float IZ;
         float DFilter;
         float OutputMin;
-        float OutputMax; 
+        float OutputMax;
+        float posFactor;
+        float velFactor;
+        float dutyCyclePosFactor;
+        float dutyCycleVelFactor;
+        bool dutyCycleInverted; 
         uint32_t period0;
         uint32_t period1;
         uint32_t period2;
