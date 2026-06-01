@@ -13,8 +13,8 @@
 
 namespace {
 
-constexpr uint8_t kMotorId = 16;
-constexpr float kActiveDuty = 0.05f;  // 5% duty command
+constexpr uint8_t kMotorId = 1;
+constexpr float kActiveDuty = 0.01f;
 
 volatile std::sig_atomic_t g_running = 1;
 
@@ -80,7 +80,7 @@ int main() {
     TerminalRawMode rawModeGuard;
 
     std::cout << "Keyboard control started for motor CAN ID " << int(kMotorId) << ".\n";
-    std::cout << "Hold W or D => duty " << kActiveDuty << ", release => duty 0.0\n";
+    std::cout << "Hold W or D => Increase output by " << kActiveDuty << ", spacebar => duty 0.0\n";
     std::cout << "Press Q to quit.\n";
 
     auto activeUntil = std::chrono::steady_clock::now();
@@ -98,18 +98,18 @@ int main() {
           // We cannot read true key-release in this simple terminal loop.
           // Extend active window when key-repeat chars arrive.
           activeUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(120);
-          activeDirection  =1;
+          activeDirection += 1;
         }
         else if (c == 'S' || c == 's'){
-            activeUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(120);
-            activeDirection = -1; 
-
+          activeUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(120);
+          activeDirection -= 1; 
+        }
+        else if (c == 32) {
+          activeDirection = 0;
         }
       }
 
-      const bool active = std::chrono::steady_clock::now() < activeUntil;
-      if(!active) activeDirection = 0;
-      const float duty = active ? (kActiveDuty * static_cast<float>(activeDirection)) : 0.0f; 
+      const float duty = kActiveDuty * static_cast<float>(activeDirection); 
       motor.heartbeat();
       motor.setDutyCycle(duty);
 

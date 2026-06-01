@@ -111,7 +111,7 @@ void printStatus8(WINDOW *win, const Status8& s8, uint8_t& ridx, uint8_t cidx)
 
 void printParams(WINDOW *win, const param::Params& p, uint8_t& ridx, uint8_t cidx)
 {
-    std::string controlTypes[8] = {"DUTY_CYCLE", "VELOCITY", "VOLTAGE", "POSITION", 
+    std::string controlTypes[8] = {"PERCENT", "VELOCITY", "VOLTAGE", "POSITION", 
         "SMARTMOTION", "SMARTVELOCITY", "MAXMOTION_POSITION", "MAXMOTION_VELOCITY"};
     std::string sensorTypes[5] = {"NONE", "PRIMARY", "ANALOG", "ALTERNATE", "DUTY_CYCLE"};
 
