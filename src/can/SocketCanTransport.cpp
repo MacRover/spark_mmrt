@@ -87,15 +87,20 @@ void SocketCanTransport::open(const std::string & interface_name, SPARK_SUBSYSTE
   // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
   //Filtering only sparkMax frames in the CAN network 
-  can_filter f{};
+  can_filter f[2];
   // We want to filter for upper API class messages only (MSB)
-  const uint8_t class_filter = (1 << 3) | (1 << 2);
+  const uint8_t class_filter =  (1 << 5) | (1 << 3) | (1 << 2);
+  const uint8_t index_filter = 0;
   const uint32_t sparkPrefix = (uint32_t(DEVICE_TYPE) << 24) | (uint32_t(MANUFACTURER) << 16) | 
-                               (uint32_t(class_filter) << 10) | (uint32_t(system_type) << 4);
-  f.can_id = CAN_EFF_FLAG | sparkPrefix; 
-  f.can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & SPARK_CAN_MASK); // ignore RTR/ERR flags
+                               (uint32_t(class_filter) << 10) | (uint32_t(index_filter) << 6) | 
+                               (uint32_t(system_type) << 4);
+  f[0].can_id = CAN_EFF_FLAG | sparkPrefix; 
+  f[0].can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & SPARK_CAN_STATUS_MASK); // ignore RTR/ERR flags
+  f[1].can_id = CAN_EFF_FLAG | sparkPrefix;
+  f[1].can_mask = CAN_EFF_FLAG | (CAN_EFF_MASK & SPARK_CAN_PARAMS_MASK);
   if (system_type == SPARK_GENERIC) {
-    f.can_mask &= ~(0x30);
+    f[0].can_mask &= ~(0x30);
+    f[1].can_mask &= ~(0x30);
   }
 
   if (::setsockopt(socket_fd_, SOL_CAN_RAW, CAN_RAW_FILTER, &f, sizeof(f)) < 0) {

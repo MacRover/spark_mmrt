@@ -109,6 +109,8 @@ class SparkMax{
         bool readParam(param::ParamID paramID, std::chrono::milliseconds timeout);
 
         uint8_t getID() const;
+        // NOTE: Only use for testing
+        void setInternalCANID(uint8_t ID_);
 };
 
 #endif
