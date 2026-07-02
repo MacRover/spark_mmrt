@@ -74,7 +74,7 @@ int main() {
     std::signal(SIGTERM, onSignal);
 
     spark_mmrt::can::SocketCanTransport transport;
-    transport.open("can0", SPARK_DRIVETRAIN);
+    transport.open("vcan0", SPARK_DRIVETRAIN);
     SparkMax motor(transport, kMotorId);
 
     TerminalRawMode rawModeGuard;

@@ -20,11 +20,11 @@ EXES := $(patsubst examples/%.cpp,$(GENERATED_DIR)/spark_%,$(EX_SRCS))
 	rm -rf $(BUILD_DIR)
 	@echo "Built $@"
 
-all: dirs $(EXES)
-	@cp $(PYTHON_MOCK_RUNNER) $(GENERATED_DIR)/$(PYTHON_MOCK_RUNNER)
-	@chmod +x $(GENERATED_DIR)/$(PYTHON_MOCK_RUNNER)
-	@rm -rf $(BUILD_DIR)
-	@echo "Built successful"
+all: dirs $(EXES) $(PYTHON_MOCK_RUNNER)
+	rm -rf $(BUILD_DIR)
+	cp $(PYTHON_MOCK_RUNNER) $(GENERATED_DIR)/$(PYTHON_MOCK_RUNNER)
+	chmod +x $(GENERATED_DIR)/$(PYTHON_MOCK_RUNNER)
+	@echo "Build successful"
 
 dirs:
 	@mkdir -p $(GENERATED_DIR)
@@ -39,3 +39,4 @@ $(GENERATED_DIR)/spark_%: examples/%.cpp $(OBJS)
 
 clean:
 	rm -rf $(GENERATED_DIR)
+	rm -rf $(BUILD_DIR)

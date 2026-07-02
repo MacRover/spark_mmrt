@@ -1,0 +1,17 @@
+mock_runners:
+  - can_interface: vcan0
+    can_bitrate: 1000000
+    filters:
+    - can_id: 1
+      can_mask: 0x3F
+    can_nodes:
+      - name: node1
+        device_id: 1
+        max_velocity: 5.0
+        status_rates: [10, 1, 20, 0, 0, 20, 0, 0]
+        listen_for_heartbeat: true
+      - name: node2
+        device_id: 2
+        max_velocity: 5.0
+        status_rates: [10, 1, 20, 0, 0, 20, 0, 0]
+        listen_for_heartbeat: true
