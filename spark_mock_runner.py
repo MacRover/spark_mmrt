@@ -135,9 +135,10 @@ class SparkMock:
     POSITION_SETPOINT = MessageAPI(0, 4)
     PARAMETER_WRITE = MessageAPI(14, 0)
 
-    def __init__(self, name, device_id, max_velocity, max_acceleration, params):
+    def __init__(self, name, device_id, heartbeat, max_velocity, max_acceleration, params):
         self.name = name
         self.device_id = device_id
+        self.heartbeat = heartbeat
         self.logger = logging.getLogger(self.__class__.__name__ + f"_{self.name}")
         self.__lock = Lock()
         
@@ -152,6 +153,7 @@ class SparkMock:
             Status7(),
         ]
         self.__setpoint = 0.0
+        self.__active_setpoint = 0.0
         self.__control_type = ControlType(params.get("control_type", 0))
         self.__pos_factor = params.get("position_factor", 1.0)
         self.__vel_factor = params.get("velocity_factor", 1.0)
@@ -161,6 +163,9 @@ class SparkMock:
         # remember to apply the scaling factor in case we need to change the units
         self.__max_velocity = max_velocity * 60.0 / (2.0 * pi) * self.__vel_factor
         self.__acceleration = max_acceleration * 60.0 ** 2 / (2.0 * pi) * self.__vel_factor
+
+        self.__heartbeat_timer = 0.1
+        self.__heartbeat_timed_out = False
 
         self.__moving = False
         self.__hold_position = 0.0
@@ -184,10 +189,10 @@ class SparkMock:
                 is_extended_id=True)
     
     def handle_position_state(self, time_diff: float):
-        if self.__moving and self.__setpoint == 0.0:
+        if self.__moving and self.__active_setpoint == 0.0:
             self.__hold_position = self.__statuses[2].encoder_pos
             self.__moving = False
-        elif self.__setpoint != 0.0:
+        elif self.__active_setpoint != 0.0:
             self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
             self.__moving = True
         else:
@@ -195,36 +200,48 @@ class SparkMock:
     
     def update_statuses(self, time_diff: float):
         with self.__lock:
+            if self.heartbeat:
+                if self.__heartbeat_timer <= 0.1:
+                    self.__active_setpoint = self.__setpoint
+                elif not self.__heartbeat_timed_out:
+                    self.logger.info(f"Heartbeat timeout, stopping motor")
+                    self.__heartbeat_timed_out = True
+                    self.__moving = False
+                    self.__hold_position = self.__statuses[2].encoder_pos
+                    self.__active_setpoint = self.__hold_position if self.__control_type == ControlType.POSITION else 0.0
+            else:
+                self.__active_setpoint = self.__setpoint
+
             if self.__control_type == ControlType.DUTY_CYCLE:
-                self.__statuses[0].applied_output = self.__setpoint
-                if self.__setpoint < -1.0:
+                self.__statuses[0].applied_output = self.__active_setpoint
+                if self.__active_setpoint < -1.0:
                     self.__statuses[0].applied_output = -1.0
-                elif self.__setpoint > 1.0:
+                elif self.__active_setpoint > 1.0:
                     self.__statuses[0].applied_output = 1.0
                 
                 self.handle_position_state(time_diff)
-                self.__statuses[2].encoder_vel = self.__setpoint * self.__max_velocity + random.uniform(-0.0005, 0.0005) * self.__vel_factor
+                self.__statuses[2].encoder_vel = self.__active_setpoint * self.__max_velocity + random.uniform(-0.0005, 0.0005) * self.__vel_factor
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
                 self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
 
             elif self.__control_type == ControlType.VELOCITY:
-                self.__statuses[2].encoder_vel = self.__setpoint + random.uniform(-0.0005, 0.0005) * self.__vel_factor
-                if self.__setpoint < -self.__max_velocity:
+                self.__statuses[2].encoder_vel = self.__active_setpoint + random.uniform(-0.0005, 0.0005) * self.__vel_factor
+                if self.__active_setpoint < -self.__max_velocity:
                     self.__statuses[2].encoder_vel = -self.__max_velocity
-                elif self.__setpoint > self.__max_velocity:
+                elif self.__active_setpoint > self.__max_velocity:
                     self.__statuses[2].encoder_vel = self.__max_velocity
 
                 self.handle_position_state(time_diff)
-                self.__statuses[0].applied_output = self.__setpoint / self.__max_velocity
+                self.__statuses[0].applied_output = self.__active_setpoint / self.__max_velocity
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
                 self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
             
             elif self.__control_type == ControlType.POSITION:
-                error_pos = self.__setpoint - self.__statuses[2].encoder_pos
+                error_pos = self.__active_setpoint - self.__statuses[2].encoder_pos
                 delta = self.__statuses[2].encoder_pos - self.__starting_pos
-                if self.__setpoint != self.__prev_setpoint or (not self.__moving and abs(error_pos) > 0.001 * self.__pos_factor):
+                if self.__active_setpoint != self.__prev_setpoint or (not self.__moving and abs(error_pos) > 0.001 * self.__pos_factor):
                     self.__moving = True
-                    self.__prev_setpoint = self.__setpoint
+                    self.__prev_setpoint = self.__active_setpoint
                     self.__rampdown_x = self.__max_velocity ** 2 / (2.0 * self.__acceleration)
                     self.__sustained_x = abs(error_pos) - self.__rampdown_x
                     self.__starting_pos = self.__statuses[2].encoder_pos
@@ -235,7 +252,7 @@ class SparkMock:
                     elif abs(delta) - self.__sustained_x <= self.__rampdown_x:
                         self.__statuses[2].encoder_vel = self.__max_velocity * self.__direction * (1.0 - (abs(delta) - self.__sustained_x) / self.__rampdown_x)
                     elif abs(error_pos) <= 0.001 * self.__pos_factor:
-                        self.logger.debug(f"Setpoint reached! Position: {self.__statuses[2].encoder_pos}, Setpoint: {self.__setpoint}")
+                        self.logger.debug(f"Setpoint reached! Position: {self.__statuses[2].encoder_pos}, Setpoint: {self.__active_setpoint}")
                         self.__moving = False
 
                     self._hold_position = self.__statuses[2].encoder_pos
@@ -247,6 +264,8 @@ class SparkMock:
                 self.__statuses[0].applied_output = self.__statuses[2].encoder_vel / self.__max_velocity
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
                 self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
+
+            self.__heartbeat_timer += time_diff * 60.0
 
         self.__statuses[0].voltage = 12.0 + random.uniform(-0.03, 0.0)
         self.__statuses[0].current = 0.5 + random.uniform(-0.05, 0.05) + 20.0 * abs(self.__statuses[0].applied_output)
@@ -308,15 +327,24 @@ class SparkMock:
     
     def process_command(self, command: Message) -> None | Message:
         device_id = command.arbitration_id & 0x3f
+        api_id = (command.arbitration_id >> 6) & 0x3ff
         device_type = (command.arbitration_id) >> 24
         manufacturer = (command.arbitration_id >> 16) & 0xff
+
+        # Listen for RIO heartbeat messages and reset the heartbeat timer on arrival
+        if device_id == 0 and device_type == 1 and manufacturer == 1 and api_id == 0x061:
+            self.logger.debug(f"Received Primary Heartbeat, refreshing timer")
+            with self.__lock:
+                self.__heartbeat_timer = 0.0
+                self.__heartbeat_timed_out = False
+
         if device_id != self.device_id or device_type != 2 or manufacturer != 5:
             return
         
         self.logger.debug(f"Received CAN Frame -> {hex(command.arbitration_id)}")
         with self.__lock:
-            index_id = (command.arbitration_id >> 6) & 0x0f
-            class_id = (command.arbitration_id >> 10) & 0x3f
+            index_id = (api_id) & 0x0f
+            class_id = (api_id >> 4)
             recv_msg = MessageAPI(class_id, index_id)
             if recv_msg == self.DUTY_CYCLE_SETPOINT:
                 self.__control_type = ControlType.DUTY_CYCLE
@@ -341,7 +369,7 @@ class SparkMock:
                     data=struct.pack("<2BIB", param_id, param_type.value, param_value, 4),
                     is_extended_id=True)
             elif class_id >= 48 and command.dlc <= 1:
-                param_id = (class_id << 4 | index_id) & 0xff
+                param_id = (api_id) & 0xff
                 self.logger.info(f"Parameter poll requested, ID: {param_id}")
                 param_value, param_type = self.get_parameter(param_id)
                 if param_type != ParameterType.UNUSED:
@@ -388,9 +416,11 @@ class SparkMockRunner:
                 SparkMock(
                     node["name"], 
                     node["device_id"], 
+                    node["listen_for_heartbeat"],
                     node["max_velocity"],
                     node["max_acceleration"],
-                    node["flash"]) 
+                    node["flash"]
+                ) 
             for node in self.nodes
         }
 

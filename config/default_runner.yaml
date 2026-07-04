@@ -11,6 +11,8 @@ mock_runners:
         can_mask: 0x0FFFC000
       - can_id: 0x02053800
         can_mask: 0x0FFFFFC0
+      - can_id: 0x01011840
+        can_mask: 0x0FFFFFFF
     can_nodes:
       - name: node1
         device_id: 1
@@ -29,7 +31,7 @@ mock_runners:
         max_velocity: 5.0
         max_acceleration: 1.0
         status_rates: [10, 1, 20, 0, 0, 20, 0, 0]
-        listen_for_heartbeat: true
+        listen_for_heartbeat: false
         flash:
           position_factor: 1.0
           velocity_factor: 1.0
