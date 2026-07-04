@@ -5,8 +5,12 @@ mock_runners:
     can_interface: vcan0
     can_bitrate: 1000000
     filters:
-    - can_id: 0x02050000
-      can_mask: 0x0FFFFC00
+      - can_id: 0x02050000
+        can_mask: 0x0FFFFC00
+      - can_id: 0x0205C000
+        can_mask: 0x0FFFC000
+      - can_id: 0x02053800
+        can_mask: 0x0FFFFFC0
     can_nodes:
       - name: node1
         device_id: 1

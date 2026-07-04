@@ -26,6 +26,22 @@ class ControlType(Enum):
     MAXMOTION_POSITION = 6
     MAXMOTION_VELOCITY = 7
 
+class ParameterID(Enum):
+    CONTROL_TYPE = 5
+    SENSOR_TYPE = 9
+    POSITION_FACTOR = 112
+    VELOCITY_FACTOR = 113
+    DUTY_CYCLE_POSITION_FACTOR = 139
+    DUTY_CYCLE_VELOCITY_FACTOR = 140
+    DUTY_CYCLE_INVERTED = 141
+
+class ParameterType(Enum):
+    UNUSED = 0
+    INT = 1
+    UINT = 2
+    FLOAT = 3
+    BOOL = 4
+
 class Status0:
     applied_output = 0.0
     voltage = 12.0
@@ -117,6 +133,7 @@ class SparkMock:
     DUTY_CYCLE_SETPOINT = MessageAPI(0, 2)
     VELOCITY_SETPOINT = MessageAPI(0, 0)
     POSITION_SETPOINT = MessageAPI(0, 4)
+    PARAMETER_WRITE = MessageAPI(14, 0)
 
     def __init__(self, name, device_id, max_velocity, max_acceleration, params):
         self.name = name
@@ -154,25 +171,40 @@ class SparkMock:
         self.__direction = 1.0
         self.logger.info(f"Initialized {self.name} with ID {self.device_id}")
     
-    def __get_address(self, status_idx: int) -> int:
-        # Class ID = 46 for status frames
-        return (2 << 24) | (5 << 16) | (46 << 10) | (status_idx << 6) | self.device_id
+    def __get_address(self, cls: int, idx: int) -> int:
+        return (2 << 24) | (5 << 16) | (cls << 10) | (idx << 6) | self.device_id
     
     def get_status_frame(self, status_idx: int) -> Message:
         status_msg = self.__statuses[status_idx]
-        self.logger.debug(f"Preparing STATUS_{status_idx}, Address: {hex(self.__get_address(status_idx))}, Data: {status_msg()}")
+        self.logger.debug(f"Preparing STATUS_{status_idx}, Address: {hex(self.__get_address(46, status_idx))}, Data: {status_msg()}")
         return Message(
-                arbitration_id=self.__get_address(status_idx), 
+                # Class ID = 46 for status frames
+                arbitration_id=self.__get_address(46, status_idx), 
                 data=status_msg(), 
                 is_extended_id=True)
+    
+    def handle_position_state(self, time_diff: float):
+        if self.__moving and self.__setpoint == 0.0:
+            self.__hold_position = self.__statuses[2].encoder_pos
+            self.__moving = False
+        elif self.__setpoint != 0.0:
+            self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
+            self.__moving = True
+        else:
+            self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
     
     def update_statuses(self, time_diff: float):
         with self.__lock:
             if self.__control_type == ControlType.DUTY_CYCLE:
                 self.__statuses[0].applied_output = self.__setpoint
-                self.__statuses[2].encoder_vel = random.uniform(-0.0005, 0.0005) * self.__vel_factor
-                self.__statuses[5].abs_encoder_vel = random.uniform(-0.0005, 0.0005) * self.__abs_vel_factor
-                self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
+                if self.__setpoint < -1.0:
+                    self.__statuses[0].applied_output = -1.0
+                elif self.__setpoint > 1.0:
+                    self.__statuses[0].applied_output = 1.0
+                
+                self.handle_position_state(time_diff)
+                self.__statuses[2].encoder_vel = self.__setpoint * self.__max_velocity + random.uniform(-0.0005, 0.0005) * self.__vel_factor
+                self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
                 self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
 
             elif self.__control_type == ControlType.VELOCITY:
@@ -182,14 +214,7 @@ class SparkMock:
                 elif self.__setpoint > self.__max_velocity:
                     self.__statuses[2].encoder_vel = self.__max_velocity
 
-                if self.__moving and self.__setpoint == 0.0:
-                    self.__hold_position = self.__statuses[2].encoder_pos
-                    self.__moving = False
-                elif self.__setpoint != 0.0:
-                    self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
-                    self.__moving = True
-                else:
-                    self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001)
+                self.handle_position_state(time_diff)
                 self.__statuses[0].applied_output = self.__setpoint / self.__max_velocity
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
                 self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
@@ -216,8 +241,8 @@ class SparkMock:
                     self._hold_position = self.__statuses[2].encoder_pos
                     self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
                 else:
-                    self.__statuses[2].encoder_vel = random.uniform(-0.0005, 0.0005)
-                    self.__statuses[2].encoder_pos = self._hold_position + random.uniform(-0.0001, 0.0001)
+                    self.__statuses[2].encoder_vel = random.uniform(-0.0005, 0.0005) * self.__vel_factor
+                    self.__statuses[2].encoder_pos = self._hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
 
                 self.__statuses[0].applied_output = self.__statuses[2].encoder_vel / self.__max_velocity
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
@@ -225,10 +250,63 @@ class SparkMock:
 
         self.__statuses[0].voltage = 12.0 + random.uniform(-0.03, 0.0)
         self.__statuses[0].current = 0.5 + random.uniform(-0.05, 0.05) + 20.0 * abs(self.__statuses[0].applied_output)
-        self.__statuses[0].motor_temperature = 25.0 + 1.50 * self.__statuses[0].current
-
+        # self.__statuses[0].motor_temperature = 25.0 + 1.50 * self.__statuses[0].current
     
-    def process_command(self, command: Message):
+    def get_parameter(self, param_id: int) -> tuple[int | float | bool, ParameterType]:
+        if param_id not in ParameterID._value2member_map_:
+            self.logger.warning("Attempted to get an unknown parameter, is it supported?")
+            return 0, ParameterType.UNUSED
+        
+        param_id = ParameterID(param_id)
+        if param_id == ParameterID.CONTROL_TYPE:
+            return self.__control_type.value, ParameterType.UINT
+        elif param_id == ParameterID.POSITION_FACTOR:
+            return self.__pos_factor, ParameterType.FLOAT
+        elif param_id == ParameterID.VELOCITY_FACTOR:
+            return self.__vel_factor, ParameterType.FLOAT
+        elif param_id == ParameterID.DUTY_CYCLE_POSITION_FACTOR:
+            return self.__abs_pos_factor, ParameterType.FLOAT
+        elif param_id == ParameterID.DUTY_CYCLE_VELOCITY_FACTOR:
+            return self.__abs_vel_factor, ParameterType.FLOAT
+        elif param_id == ParameterID.DUTY_CYCLE_INVERTED:
+            return False, ParameterType.BOOL
+        elif param_id == ParameterID.SENSOR_TYPE:
+            return 0, ParameterType.UINT
+
+    def update_parameters(self, param_id: int, param_value: int) -> tuple[bool, ParameterType]:
+        if param_id not in ParameterID._value2member_map_:
+            self.logger.warning("Received unknown/unused parameter, is it supported?")
+            return False, ParameterType.UNUSED
+        
+        param_id = ParameterID(param_id)
+        type = ParameterType.UNUSED
+        if param_id == ParameterID.CONTROL_TYPE:
+            self.__control_type = ControlType(param_value)
+            type = ParameterType.UINT
+            self.logger.info(f"Updated Control Type to {self.__control_type.name}")
+        elif param_id == ParameterID.POSITION_FACTOR:
+            self.__pos_factor, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated Position Factor to {self.__pos_factor}")
+        elif param_id == ParameterID.VELOCITY_FACTOR:
+            self.__vel_factor, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated Velocity Factor to {self.__vel_factor}")
+        elif param_id == ParameterID.DUTY_CYCLE_POSITION_FACTOR:
+            self.__abs_pos_factor, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated Duty Cycle Position Factor to {self.__abs_pos_factor}")
+        elif param_id == ParameterID.DUTY_CYCLE_VELOCITY_FACTOR:
+            self.__abs_vel_factor, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated Duty Cycle Velocity Factor to {self.__abs_vel_factor}")
+        elif param_id == ParameterID.DUTY_CYCLE_INVERTED:
+            type = ParameterType.BOOL
+        elif param_id == ParameterID.SENSOR_TYPE:
+            type = ParameterType.UINT
+        return True, type
+    
+    def process_command(self, command: Message) -> None | Message:
         device_id = command.arbitration_id & 0x3f
         device_type = (command.arbitration_id) >> 24
         manufacturer = (command.arbitration_id >> 16) & 0xff
@@ -249,6 +327,34 @@ class SparkMock:
             elif recv_msg == self.POSITION_SETPOINT:
                 self.__control_type = ControlType.POSITION
                 self.__setpoint, = struct.unpack("<f", command.data[:4])
+            elif recv_msg == self.PARAMETER_WRITE:
+                param_id, param_value = struct.unpack("<BI", command.data)
+                self.logger.debug(f"Received Parameter Write -> Param ID: {param_id}, Raw Value: {param_value}")
+                success, param_type = self.update_parameters(param_id, param_value)
+                if success:
+                    return Message(
+                        arbitration_id=self.__get_address(14, 1),
+                        data=struct.pack("<2BIB", param_id, param_type.value, param_value, 0),
+                        is_extended_id=True)
+                return Message(
+                    arbitration_id=self.__get_address(14, 1),
+                    data=struct.pack("<2BIB", param_id, param_type.value, param_value, 4),
+                    is_extended_id=True)
+            elif class_id >= 48 and command.dlc <= 1:
+                param_id = (class_id << 4 | index_id) & 0xff
+                self.logger.info(f"Parameter poll requested, ID: {param_id}")
+                param_value, param_type = self.get_parameter(param_id)
+                if param_type != ParameterType.UNUSED:
+                    format_type = "f" if param_type == ParameterType.FLOAT else "I"
+                    self.logger.info(f"Parameter request success, value: {param_value}")
+                    return Message(
+                        arbitration_id=self.__get_address(class_id, param_id),
+                        data=struct.pack(f"<{format_type}2B", param_value, param_type.value, 0),
+                        is_extended_id=True)
+                return Message(
+                    arbitration_id=self.__get_address(class_id, param_id),
+                    data=struct.pack("<I2B", param_value, ParameterType.UNUSED.value, 0),
+                    is_extended_id=True)
 
 
 class SparkMockRunner:
@@ -298,7 +404,9 @@ class SparkMockRunner:
 
     def can_rx_callback(self, device_id: int, msg: Message) -> None:
         spark_mock = self.devices[device_id]
-        spark_mock.process_command(msg)
+        resp_msg = spark_mock.process_command(msg)
+        if resp_msg:
+            self.bus.send(resp_msg)
 
     def can_tx_callback(self, device_id: int, status_periods: List[float]) -> None:
         prev_time = [0] * len(status_periods)
@@ -336,7 +444,7 @@ def main():
         "critical": logging.CRITICAL
     }
     logging.basicConfig(
-        level=log_level[config.get("log_level", "info")],
+        level=log_level[config.get("log_level", "info").lower()],
         format="[%(levelname)s]: (%(name)s): %(message)s"
     )
 
