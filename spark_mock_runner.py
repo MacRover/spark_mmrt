@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import time
+from math import pi
 import random
 import struct
 import os
@@ -8,6 +9,7 @@ from typing import List
 import yaml
 from can import ThreadSafeBus, Message, Notifier
 from threading import Thread, Lock
+import logging
 
 from enum import Enum
 
@@ -15,13 +17,13 @@ from enum import Enum
 # -------------------------- Data Classes ----------------------------
 # --------------------------------------------------------------------
 class ControlType(Enum):
-    DUTY_CYCLE = 0, 
-    VELOCITY = 1, 
-    VOLTAGE = 2, 
-    POSITION = 3,
-    SMARTMOTION = 4, 
-    SMARTVELOCITY = 5, 
-    MAXMOTION_POSITION = 6, 
+    DUTY_CYCLE = 0
+    VELOCITY = 1
+    VOLTAGE = 2
+    POSITION = 3
+    SMARTMOTION = 4
+    SMARTVELOCITY = 5
+    MAXMOTION_POSITION = 6
     MAXMOTION_VELOCITY = 7
 
 class Status0:
@@ -92,7 +94,6 @@ class Status6:
     duty_cycle = 0.0
     period = 0
     no_signal = False
-
     def __call__(self):
         duty = int(self.duty_cycle * 64886.14)
         return struct.pack("<2hI", duty, self.period, self.no_signal)
@@ -117,10 +118,12 @@ class SparkMock:
     VELOCITY_SETPOINT = MessageAPI(0, 0)
     POSITION_SETPOINT = MessageAPI(0, 4)
 
-    def __init__(self, name, device_id, max_velocity):
+    def __init__(self, name, device_id, max_velocity, max_acceleration, params):
         self.name = name
         self.device_id = device_id
+        self.logger = logging.getLogger(self.__class__.__name__ + f"_{self.name}")
         self.__lock = Lock()
+        
         self.__statuses = [
             Status0(),
             Status1(),
@@ -132,8 +135,24 @@ class SparkMock:
             Status7(),
         ]
         self.__setpoint = 0.0
-        self.__control_type = ControlType.DUTY_CYCLE
-        self.__max_velocity = max_velocity
+        self.__control_type = ControlType(params.get("control_type", 0))
+        self.__pos_factor = params.get("position_factor", 1.0)
+        self.__vel_factor = params.get("velocity_factor", 1.0)
+        self.__abs_pos_factor = params.get("abs_position_factor", 1.0)
+        self.__abs_vel_factor = params.get("abs_velocity_factor", 1.0)
+        # Convert units from rad/s to RPM and rad/s^2 to RPM^2 respectively, also
+        # remember to apply the scaling factor in case we need to change the units
+        self.__max_velocity = max_velocity * 60.0 / (2.0 * pi) * self.__vel_factor
+        self.__acceleration = max_acceleration * 60.0 ** 2 / (2.0 * pi) * self.__vel_factor
+
+        self.__moving = False
+        self.__hold_position = 0.0
+        self.__prev_setpoint = 0.0
+        self.__rampdown_x = 0.0
+        self.__sustained_x = 0.0
+        self.__starting_pos = 0.0
+        self.__direction = 1.0
+        self.logger.info(f"Initialized {self.name} with ID {self.device_id}")
     
     def __get_address(self, status_idx: int) -> int:
         # Class ID = 46 for status frames
@@ -141,6 +160,7 @@ class SparkMock:
     
     def get_status_frame(self, status_idx: int) -> Message:
         status_msg = self.__statuses[status_idx]
+        self.logger.debug(f"Preparing STATUS_{status_idx}, Address: {hex(self.__get_address(status_idx))}, Data: {status_msg()}")
         return Message(
                 arbitration_id=self.__get_address(status_idx), 
                 data=status_msg(), 
@@ -150,24 +170,59 @@ class SparkMock:
         with self.__lock:
             if self.__control_type == ControlType.DUTY_CYCLE:
                 self.__statuses[0].applied_output = self.__setpoint
-                self.__statuses[2].encoder_vel = 0.0
-                self.__statuses[2].encoder_pos = 0.0
-                self.__statuses[5].abs_encoder_vel = 0.0
-                self.__statuses[5].abs_encoder_pos = 0.0
+                self.__statuses[2].encoder_vel = random.uniform(-0.0005, 0.0005) * self.__vel_factor
+                self.__statuses[5].abs_encoder_vel = random.uniform(-0.0005, 0.0005) * self.__abs_vel_factor
+                self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
+                self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
 
             elif self.__control_type == ControlType.VELOCITY:
-                self.__statuses[2].encoder_vel = self.__setpoint + random.uniform(-0.005, 0.005)
+                self.__statuses[2].encoder_vel = self.__setpoint + random.uniform(-0.0005, 0.0005) * self.__vel_factor
                 if self.__setpoint < -self.__max_velocity:
                     self.__statuses[2].encoder_vel = -self.__max_velocity
                 elif self.__setpoint > self.__max_velocity:
                     self.__statuses[2].encoder_vel = self.__max_velocity
-                if self.__setpoint != 0.0:
-                    self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * time_diff
+
+                if self.__moving and self.__setpoint == 0.0:
+                    self.__hold_position = self.__statuses[2].encoder_pos
+                    self.__moving = False
+                elif self.__setpoint != 0.0:
+                    self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
+                    self.__moving = True
+                else:
+                    self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001)
                 self.__statuses[0].applied_output = self.__setpoint / self.__max_velocity
+                self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
+                self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
             
             elif self.__control_type == ControlType.POSITION:
-                pass
-                
+                error_pos = self.__setpoint - self.__statuses[2].encoder_pos
+                delta = self.__statuses[2].encoder_pos - self.__starting_pos
+                if self.__setpoint != self.__prev_setpoint or (not self.__moving and abs(error_pos) > 0.001 * self.__pos_factor):
+                    self.__moving = True
+                    self.__prev_setpoint = self.__setpoint
+                    self.__rampdown_x = self.__max_velocity ** 2 / (2.0 * self.__acceleration)
+                    self.__sustained_x = abs(error_pos) - self.__rampdown_x
+                    self.__starting_pos = self.__statuses[2].encoder_pos
+                    self.__direction = (1.0 if error_pos > 0 else -1.0)
+                elif self.__moving:
+                    if abs(delta) <= self.__sustained_x:
+                        self.__statuses[2].encoder_vel = self.__max_velocity * self.__direction
+                    elif abs(delta) - self.__sustained_x <= self.__rampdown_x:
+                        self.__statuses[2].encoder_vel = self.__max_velocity * self.__direction * (1.0 - (abs(delta) - self.__sustained_x) / self.__rampdown_x)
+                    elif abs(error_pos) <= 0.001 * self.__pos_factor:
+                        self.logger.debug(f"Setpoint reached! Position: {self.__statuses[2].encoder_pos}, Setpoint: {self.__setpoint}")
+                        self.__moving = False
+
+                    self._hold_position = self.__statuses[2].encoder_pos
+                    self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
+                else:
+                    self.__statuses[2].encoder_vel = random.uniform(-0.0005, 0.0005)
+                    self.__statuses[2].encoder_pos = self._hold_position + random.uniform(-0.0001, 0.0001)
+
+                self.__statuses[0].applied_output = self.__statuses[2].encoder_vel / self.__max_velocity
+                self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
+                self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
+
         self.__statuses[0].voltage = 12.0 + random.uniform(-0.03, 0.0)
         self.__statuses[0].current = 0.5 + random.uniform(-0.05, 0.05) + 20.0 * abs(self.__statuses[0].applied_output)
         self.__statuses[0].motor_temperature = 25.0 + 1.50 * self.__statuses[0].current
@@ -179,6 +234,8 @@ class SparkMock:
         manufacturer = (command.arbitration_id >> 16) & 0xff
         if device_id != self.device_id or device_type != 2 or manufacturer != 5:
             return
+        
+        self.logger.debug(f"Received CAN Frame -> {hex(command.arbitration_id)}")
         with self.__lock:
             index_id = (command.arbitration_id >> 6) & 0x0f
             class_id = (command.arbitration_id >> 10) & 0x3f
@@ -196,12 +253,14 @@ class SparkMock:
 
 class SparkMockRunner:
     def __init__(self, config):
+        self.name = config["name"]
         self.nodes = config["can_nodes"]
+        self.logger = logging.getLogger(self.__class__.__name__ + f"_{self.name}")
         self.bus = ThreadSafeBus(
             interface="socketcan", 
             channel=config["can_interface"], 
             bitrate=config["can_bitrate"],
-            can_filters=[f | {"extended": True} for f in config["filters"]]
+            can_filters=[f | {"extended": True} for f in config["filters"]] 
         )
         self.notifier = Notifier(
             self.bus, 
@@ -218,10 +277,20 @@ class SparkMockRunner:
             )
             for node in self.nodes
         ]
-        self.devices = {node["device_id"]: SparkMock(node["name"], node["device_id"], node["max_velocity"]) for node in self.nodes}
+        self.devices = {
+            node["device_id"]: 
+                SparkMock(
+                    node["name"], 
+                    node["device_id"], 
+                    node["max_velocity"],
+                    node["max_acceleration"],
+                    node["flash"]) 
+            for node in self.nodes
+        }
 
         for timer in self.timers:
             timer.start()
+        self.logger.info(f"Initialized {self.name}")
     
     def __del__(self):
         self.notifier.stop()
@@ -242,7 +311,7 @@ class SparkMockRunner:
                     status_msg = spark_mock.get_status_frame(i)
                     self.bus.send(status_msg)
             delta_time = time.time() - current_time
-            spark_mock.update_statuses(delta_time)
+            spark_mock.update_statuses(delta_time / 60.0)
 
 def load_yaml(config_path) -> dict:
     with open(config_path, 'r') as f:
@@ -258,6 +327,18 @@ def main():
     config_path = sys.argv[1] if len(sys.argv) > 1 else \
                     os.path.join(base_dir, "config", "default_runner.yaml")
     config = load_yaml(config_path)
+
+    log_level = {
+        "debug": logging.DEBUG,
+        "info": logging.INFO,
+        "warning": logging.WARNING,
+        "error": logging.ERROR,
+        "critical": logging.CRITICAL
+    }
+    logging.basicConfig(
+        level=log_level[config.get("log_level", "info")],
+        format="[%(levelname)s]: (%(name)s): %(message)s"
+    )
 
     runners = []
     for runner_config in config["mock_runners"]:
