@@ -174,7 +174,7 @@ class SparkMock:
         self.__max_velocity = max_velocity * 60.0 / (2.0 * pi) * self.__vel_factor
         self.__acceleration = max_acceleration * 60.0 ** 2 / (2.0 * pi) * self.__vel_factor
 
-        self.__heartbeat_timer = 0.1
+        self.__heartbeat_timer = 0.5
         self.__heartbeat_timed_out = False
 
         self.__moving = False
@@ -212,7 +212,7 @@ class SparkMock:
     def update_statuses(self, time_diff: float):
         with self.__lock:
             if self.heartbeat:
-                if self.__heartbeat_timer <= 0.1:
+                if self.__heartbeat_timer <= 0.5:
                     self.__active_setpoint = self.__setpoint
                 elif not self.__heartbeat_timed_out:
                     self.logger.info(f"Heartbeat timeout, stopping motor")
