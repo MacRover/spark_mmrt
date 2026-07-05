@@ -17,7 +17,7 @@ mock_runners:
       - name: node1
         device_id: 1
         max_velocity: 5.0
-        max_acceleration: 1.0
+        max_acceleration: 15.0
         status_rates: [10, 1, 20, 0, 0, 20, 0, 0]
         listen_for_heartbeat: true
         flash:
@@ -26,10 +26,11 @@ mock_runners:
           abs_position_factor: 360.0
           abs_velocity_factor: 360.0
           control_type: 0
+          sensor_type: 4
       - name: node2
         device_id: 2
         max_velocity: 5.0
-        max_acceleration: 1.0
+        max_acceleration: 15.0
         status_rates: [10, 1, 20, 0, 0, 20, 0, 0]
         listen_for_heartbeat: false
         flash:
@@ -38,3 +39,4 @@ mock_runners:
           abs_position_factor: 360.0
           abs_velocity_factor: 360.0
           control_type: 0
+          sensor_type: 1

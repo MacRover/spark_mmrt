@@ -55,6 +55,7 @@ These values seed the simulated flash-backed parameters for each node.
 | `abs_position_factor` | Number | Scale factor for the absolute encoder position. |
 | `abs_velocity_factor` | Number | Scale factor for the absolute encoder velocity. |
 | `control_type` | ControlType | Default control mode for the node. |
+| `sensor_type` | SensorType | Default sensor source used by the node. |
 
 ## `ControlType` Enum Values
 
@@ -68,3 +69,13 @@ These values seed the simulated flash-backed parameters for each node.
 | `5` | Smart velocity |
 | `6` | Max motion position |
 | `7` | Max motion velocity |
+
+## `SensorType` Enum Values
+
+| Value | Meaning |
+| --- | --- |
+| `0` | None |
+| `1` | Main encoder |
+| `2` | Analog |
+| `3` | Alternate encoder |
+| `4` | Duty cycle |
