@@ -26,6 +26,13 @@ class ControlType(Enum):
     MAXMOTION_POSITION = 6
     MAXMOTION_VELOCITY = 7
 
+class SensorType(Enum):
+    NONE = 0
+    MAIN_ENCODER = 1
+    ANALOG = 2
+    ALT_ENCODER = 3
+    DUTY_CYCLE = 4
+
 class ParameterID(Enum):
     CONTROL_TYPE = 5
     SENSOR_TYPE = 9
@@ -155,10 +162,13 @@ class SparkMock:
         self.__setpoint = 0.0
         self.__active_setpoint = 0.0
         self.__control_type = ControlType(params.get("control_type", 0))
+        self.__sensor_type = SensorType(params.get("sensor_type", 1))
         self.__pos_factor = params.get("position_factor", 1.0)
         self.__vel_factor = params.get("velocity_factor", 1.0)
         self.__abs_pos_factor = params.get("abs_position_factor", 1.0)
         self.__abs_vel_factor = params.get("abs_velocity_factor", 1.0)
+        self.__setpoint_pos_factor = 1.0
+        self.__setpoint_vel_factor = 1.0
         # Convert units from rad/s to RPM and rad/s^2 to RPM^2 respectively, also
         # remember to apply the scaling factor in case we need to change the units
         self.__max_velocity = max_velocity * 60.0 / (2.0 * pi) * self.__vel_factor
@@ -174,6 +184,7 @@ class SparkMock:
         self.__sustained_x = 0.0
         self.__starting_pos = 0.0
         self.__direction = 1.0
+        self.update_parameters(ParameterID.SENSOR_TYPE.value, self.__sensor_type.value)
         self.logger.info(f"Initialized {self.name} with ID {self.device_id}")
     
     def __get_address(self, cls: int, idx: int) -> int:
@@ -239,27 +250,27 @@ class SparkMock:
             elif self.__control_type == ControlType.POSITION:
                 error_pos = self.__active_setpoint - self.__statuses[2].encoder_pos
                 delta = self.__statuses[2].encoder_pos - self.__starting_pos
-                if self.__active_setpoint != self.__prev_setpoint or (not self.__moving and abs(error_pos) > 0.001 * self.__pos_factor):
+                if self.__active_setpoint != self.__prev_setpoint or (not self.__moving and abs(error_pos) > 0.005 * self.__pos_factor):
                     self.__moving = True
                     self.__prev_setpoint = self.__active_setpoint
-                    self.__rampdown_x = self.__max_velocity ** 2 / (2.0 * self.__acceleration)
+                    self.__rampdown_x = self.__max_velocity ** 2 / (2.0 * self.__acceleration) * (self.__pos_factor / self.__vel_factor)
                     self.__sustained_x = abs(error_pos) - self.__rampdown_x
                     self.__starting_pos = self.__statuses[2].encoder_pos
                     self.__direction = (1.0 if error_pos > 0 else -1.0)
                 elif self.__moving:
                     if abs(delta) <= self.__sustained_x:
                         self.__statuses[2].encoder_vel = self.__max_velocity * self.__direction
-                    elif abs(delta) - self.__sustained_x <= self.__rampdown_x:
+                    elif abs(delta) - self.__sustained_x <= self.__rampdown_x - 0.0005 * self.__pos_factor:
                         self.__statuses[2].encoder_vel = self.__max_velocity * self.__direction * (1.0 - (abs(delta) - self.__sustained_x) / self.__rampdown_x)
-                    elif abs(error_pos) <= 0.001 * self.__pos_factor:
+                    else:
                         self.logger.debug(f"Setpoint reached! Position: {self.__statuses[2].encoder_pos}, Setpoint: {self.__active_setpoint}")
+                        self.__hold_position = self.__statuses[2].encoder_pos
                         self.__moving = False
 
-                    self._hold_position = self.__statuses[2].encoder_pos
                     self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
                 else:
                     self.__statuses[2].encoder_vel = random.uniform(-0.0005, 0.0005) * self.__vel_factor
-                    self.__statuses[2].encoder_pos = self._hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
+                    self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
 
                 self.__statuses[0].applied_output = self.__statuses[2].encoder_vel / self.__max_velocity
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
@@ -290,7 +301,7 @@ class SparkMock:
         elif param_id == ParameterID.DUTY_CYCLE_INVERTED:
             return False, ParameterType.BOOL
         elif param_id == ParameterID.SENSOR_TYPE:
-            return 0, ParameterType.UINT
+            return self.__sensor_type.value, ParameterType.UINT
 
     def update_parameters(self, param_id: int, param_value: int) -> tuple[bool, ParameterType]:
         if param_id not in ParameterID._value2member_map_:
@@ -299,30 +310,60 @@ class SparkMock:
         
         param_id = ParameterID(param_id)
         type = ParameterType.UNUSED
+        update_setpoint_factors = False
+
         if param_id == ParameterID.CONTROL_TYPE:
             self.__control_type = ControlType(param_value)
             type = ParameterType.UINT
             self.logger.info(f"Updated Control Type to {self.__control_type.name}")
+
         elif param_id == ParameterID.POSITION_FACTOR:
             self.__pos_factor, = struct.unpack("<f", struct.pack("<I", param_value))
             type = ParameterType.FLOAT
             self.logger.info(f"Updated Position Factor to {self.__pos_factor}")
+            update_setpoint_factors = True
+
         elif param_id == ParameterID.VELOCITY_FACTOR:
-            self.__vel_factor, = struct.unpack("<f", struct.pack("<I", param_value))
+            new_vel_factor, = struct.unpack("<f", struct.pack("<I", param_value))
+            self.__max_velocity = self.__max_velocity * (new_vel_factor / self.__vel_factor)
+            self.__acceleration = self.__acceleration * (new_vel_factor / self.__vel_factor)
+            self.__vel_factor = new_vel_factor
             type = ParameterType.FLOAT
             self.logger.info(f"Updated Velocity Factor to {self.__vel_factor}")
+            update_setpoint_factors = True
+
         elif param_id == ParameterID.DUTY_CYCLE_POSITION_FACTOR:
             self.__abs_pos_factor, = struct.unpack("<f", struct.pack("<I", param_value))
             type = ParameterType.FLOAT
             self.logger.info(f"Updated Duty Cycle Position Factor to {self.__abs_pos_factor}")
+            update_setpoint_factors = True
+
         elif param_id == ParameterID.DUTY_CYCLE_VELOCITY_FACTOR:
             self.__abs_vel_factor, = struct.unpack("<f", struct.pack("<I", param_value))
             type = ParameterType.FLOAT
             self.logger.info(f"Updated Duty Cycle Velocity Factor to {self.__abs_vel_factor}")
+            update_setpoint_factors = True
+
         elif param_id == ParameterID.DUTY_CYCLE_INVERTED:
             type = ParameterType.BOOL
-        elif param_id == ParameterID.SENSOR_TYPE:
+
+        if update_setpoint_factors or param_id == ParameterID.SENSOR_TYPE:
+            sensor = SensorType(param_value)
+            if sensor == SensorType.MAIN_ENCODER:
+                self.__setpoint_pos_factor = 1.0
+                self.__setpoint_vel_factor = 1.0
+            elif sensor == SensorType.DUTY_CYCLE:
+                self.__setpoint_pos_factor = (self.__pos_factor / self.__abs_pos_factor)
+                self.__setpoint_vel_factor = (self.__vel_factor / self.__abs_vel_factor)
+            elif sensor == SensorType.NONE:
+                self.__setpoint_pos_factor = 0.0
+                self.__setpoint_vel_factor = 0.0
+
+            self.__sensor_type = sensor
             type = ParameterType.UINT
+            if param_id == ParameterID.SENSOR_TYPE:
+                self.logger.info(f"Updated Sensor Type to {self.__sensor_type.name}")
+
         return True, type
     
     def process_command(self, command: Message) -> None | Message:
@@ -337,6 +378,7 @@ class SparkMock:
             with self.__lock:
                 self.__heartbeat_timer = 0.0
                 self.__heartbeat_timed_out = False
+                self.__statuses[0].primary_heartbeat_lock = True
 
         if device_id != self.device_id or device_type != 2 or manufacturer != 5:
             return
@@ -348,13 +390,13 @@ class SparkMock:
             recv_msg = MessageAPI(class_id, index_id)
             if recv_msg == self.DUTY_CYCLE_SETPOINT:
                 self.__control_type = ControlType.DUTY_CYCLE
-                self.__setpoint, = struct.unpack("<f", command.data[:4])
+                self.__setpoint = struct.unpack("<f", command.data[:4])[0]
             elif recv_msg == self.VELOCITY_SETPOINT:
                 self.__control_type = ControlType.VELOCITY
-                self.__setpoint, = struct.unpack("<f", command.data[:4])
+                self.__setpoint = struct.unpack("<f", command.data[:4])[0] * self.__setpoint_vel_factor
             elif recv_msg == self.POSITION_SETPOINT:
                 self.__control_type = ControlType.POSITION
-                self.__setpoint, = struct.unpack("<f", command.data[:4])
+                self.__setpoint = struct.unpack("<f", command.data[:4])[0] * self.__setpoint_pos_factor
             elif recv_msg == self.PARAMETER_WRITE:
                 param_id, param_value = struct.unpack("<BI", command.data)
                 self.logger.debug(f"Received Parameter Write -> Param ID: {param_id}, Raw Value: {param_value}")
