@@ -18,7 +18,7 @@ mock_runners:
         device_id: 1
         max_velocity: 5.0
         max_acceleration: 15.0
-        status_rates: [10, 1, 20, 0, 0, 20, 0, 0]
+        status_rates: [10, 1, 20, 0, 0, 20, 0, 0, 20]
         listen_for_heartbeat: true
         flash:
           position_factor: 1.0
@@ -31,7 +31,7 @@ mock_runners:
         device_id: 2
         max_velocity: 5.0
         max_acceleration: 15.0
-        status_rates: [10, 1, 20, 0, 0, 20, 0, 0]
+        status_rates: [10, 1, 20, 0, 0, 20, 0, 0, 20]
         listen_for_heartbeat: false
         flash:
           position_factor: 1.0
