@@ -20,6 +20,7 @@ mock_runners:
         max_acceleration: 15.0
         status_rates: [10, 1, 20, 0, 0, 20, 0, 0, 20]
         listen_for_heartbeat: true
+        heartbeat_timeout: 1.0
         flash:
           position_factor: 1.0
           velocity_factor: 1.0
@@ -33,6 +34,7 @@ mock_runners:
         max_acceleration: 15.0
         status_rates: [10, 1, 20, 0, 0, 20, 0, 0, 20]
         listen_for_heartbeat: false
+        heartbeat_timeout: 1.0
         flash:
           position_factor: 1.0
           velocity_factor: 1.0

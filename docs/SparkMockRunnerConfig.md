@@ -38,10 +38,11 @@ Each entry defines one simulated SparkMAX device.
 | --- | --- | --- |
 | `name` | String | Human-readable node name to distinguish between log messages of different nodes. |
 | `device_id` | Integer | CAN device ID for the simulated node. |
-| `max_velocity` | Number | Maximum simulated velocity used by the control model. |
-| `max_acceleration` | Number | Maximum simulated acceleration used by the position control model. |
-| `status_rates` | Array of numbers | Status frame update rates, one value per status frame index. Assigning a value of `0` effectively disables that status frame. |
-| `listen_for_heartbeat` | Boolean | Enables heartbeat monitoring for the node. When `true`, the node expects primary heartbeat traffic before continuing motion. |
+| `max_velocity` | Float | Maximum simulated velocity used by the control model, defaults to `5.0` rad/s |
+| `max_acceleration` | Float | Maximum simulated acceleration used by the position control model, defaults to `10.0` rad/s^2 |
+| `status_rates[8]` | Array of Floats | Status frame update rates, each index corresponding to a status type. Assigning a value of `0` effectively disables that status frame. |
+| `listen_for_heartbeat` | Boolean | Enables heartbeat monitoring for the node. When `true`, the node expects primary heartbeat traffic before continuing motion. Default is `true`. |
+| `heartbeat_timeout` | Float | Elasped time after the previous heartbeat was received for the device to be considered hung, ie disabled. Default is `1.0` second. |
 | `flash` | Object | Persistent per-node parameter values used to initialize the simulated device state. |
 
 ## `mock_runners[].can_nodes[].flash`
@@ -50,12 +51,12 @@ These values seed the simulated flash-backed parameters for each node.
 
 | Key | Type to set | Description |
 | --- | --- | --- |
-| `position_factor` | Number | Scale factor applied to position values. |
-| `velocity_factor` | Number | Scale factor applied to velocity values. |
-| `abs_position_factor` | Number | Scale factor for the absolute encoder position. |
-| `abs_velocity_factor` | Number | Scale factor for the absolute encoder velocity. |
-| `control_type` | ControlType | Default control mode for the node. |
-| `sensor_type` | SensorType | Default sensor source used by the node. |
+| `position_factor` | Float | Scale factor applied to position values. Default is `1.0` |
+| `velocity_factor` | Float | Scale factor applied to velocity values. Default is `1.0` |
+| `abs_position_factor` | Float | Scale factor for the absolute encoder position. Default is `1.0` |
+| `abs_velocity_factor` | Float | Scale factor for the absolute encoder velocity. Default is `1.0` |
+| `control_type` | ControlType | Default control mode for the node. Default is `0` or duty cycle. |
+| `sensor_type` | SensorType | Default sensor source used by the node. Default is `1`. |
 
 ## `ControlType` Enum Values
 

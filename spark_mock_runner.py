@@ -150,10 +150,11 @@ class SparkMock:
     POSITION_SETPOINT = MessageAPI(0, 4)
     PARAMETER_WRITE = MessageAPI(14, 0)
 
-    def __init__(self, name, device_id, heartbeat, max_velocity, max_acceleration, params):
+    def __init__(self, name, device_id, heartbeat, heartbeat_timeout, max_velocity, max_acceleration, params):
         self.name = name
         self.device_id = device_id
         self.heartbeat = heartbeat
+        self.heartbeat_timeout = heartbeat_timeout
         self.logger = logging.getLogger(self.__class__.__name__ + f"_{self.name}")
         self.__lock = Lock()
         
@@ -183,7 +184,7 @@ class SparkMock:
         self.__max_velocity = max_velocity * 60.0 / (2.0 * pi) * self.__vel_factor
         self.__acceleration = max_acceleration * 60.0 ** 2 / (2.0 * pi) * self.__vel_factor
 
-        self.__heartbeat_timer = 0.5
+        self.__heartbeat_timer = self.heartbeat_timeout
         self.__heartbeat_timed_out = False
 
         self.__moving = False
@@ -221,7 +222,7 @@ class SparkMock:
     def update_statuses(self, time_diff: float):
         with self.__lock:
             if self.heartbeat:
-                if self.__heartbeat_timer <= 0.5:
+                if self.__heartbeat_timer <= self.heartbeat_timeout:
                     self.__active_setpoint = self.__setpoint
                 elif not self.__heartbeat_timed_out:
                     self.logger.info(f"Heartbeat timeout, stopping motor")
@@ -456,6 +457,19 @@ class SparkMockRunner:
             bitrate=config["can_bitrate"],
             can_filters=[f | {"extended": True} for f in config["filters"]] 
         )
+        self.devices = {
+            node["device_id"]: 
+                SparkMock(
+                    node["name"], 
+                    node["device_id"], 
+                    node.get("listen_for_heartbeat", True),
+                    node.get("heartbeat_timeout", 1.0),
+                    node.get("max_velocity", 5.0),
+                    node.get("max_acceleration", 10.0),
+                    node["flash"]
+                ) 
+            for node in self.nodes
+        }
         self.notifier = Notifier(
             self.bus, 
             listeners=[
@@ -471,18 +485,6 @@ class SparkMockRunner:
             )
             for node in self.nodes
         ]
-        self.devices = {
-            node["device_id"]: 
-                SparkMock(
-                    node["name"], 
-                    node["device_id"], 
-                    node["listen_for_heartbeat"],
-                    node["max_velocity"],
-                    node["max_acceleration"],
-                    node["flash"]
-                ) 
-            for node in self.nodes
-        }
 
         for timer in self.timers:
             timer.start()
