@@ -217,7 +217,7 @@ class SparkMock:
             self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
             self.__moving = True
         else:
-            self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
+            self.__statuses[2].encoder_pos = self.__hold_position + random.gauss(0.0, 0.0001 * self.__pos_factor)
     
     def update_statuses(self, time_diff: float):
         with self.__lock:
@@ -241,13 +241,13 @@ class SparkMock:
                     self.__statuses[0].applied_output = 1.0
                 
                 self.handle_position_state(time_diff)
-                self.__statuses[2].encoder_vel = self.__active_setpoint * self.__max_velocity + random.uniform(-0.0005, 0.0005) * self.__vel_factor
+                self.__statuses[2].encoder_vel = self.__active_setpoint * self.__max_velocity + random.gauss(0.0, 0.00025 * self.__vel_factor)
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
                 self.__statuses[5].abs_encoder_pos = (self.__statuses[2].encoder_pos * (self.__abs_pos_factor / self.__pos_factor)) % self.__abs_pos_factor
                 self.__statuses[8].at_setpoint = (self.__active_setpoint == self.__setpoint)
 
             elif self.__control_type == ControlType.VELOCITY:
-                self.__statuses[2].encoder_vel = self.__active_setpoint + random.uniform(-0.0005, 0.0005) * self.__vel_factor
+                self.__statuses[2].encoder_vel = self.__active_setpoint + random.gauss(0.0, 0.00025 * self.__vel_factor)
                 if self.__active_setpoint < -self.__max_velocity:
                     self.__statuses[2].encoder_vel = -self.__max_velocity
                 elif self.__active_setpoint > self.__max_velocity:
@@ -283,8 +283,8 @@ class SparkMock:
 
                     self.__statuses[2].encoder_pos += self.__statuses[2].encoder_vel * (self.__pos_factor / self.__vel_factor) * time_diff
                 else:
-                    self.__statuses[2].encoder_vel = random.uniform(-0.0005, 0.0005) * self.__vel_factor
-                    self.__statuses[2].encoder_pos = self.__hold_position + random.uniform(-0.0001, 0.0001) * self.__pos_factor
+                    self.__statuses[2].encoder_vel = random.gauss(0.0, 0.00025 * self.__vel_factor)
+                    self.__statuses[2].encoder_pos = self.__hold_position + random.gauss(0.0, 0.0001 * self.__pos_factor)
 
                 self.__statuses[0].applied_output = self.__statuses[2].encoder_vel / self.__max_velocity
                 self.__statuses[5].abs_encoder_vel = self.__statuses[2].encoder_vel * (self.__abs_vel_factor / self.__vel_factor)
