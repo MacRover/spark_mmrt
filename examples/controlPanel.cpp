@@ -32,15 +32,15 @@ struct UIState {
     bool is_running = true;
 };
 
-int main() {     // int main(int argc, char* argv[]) {
-    // std::signal(SIGINT, onSignal);
-    // std::signal(SIGTERM, onSignal);
+int main(int argc, char* argv[]) {   
+    std::signal(SIGINT, onSignal);
+    std::signal(SIGTERM, onSignal);
 
-    // spark_mmrt::can::SocketCanTransport transport;
-    // std::string interface = (argc > 1) ? argv[1] : "vcan0";
-    // transport.open(interface);
-    // SparkMax motor(transport, 0); 
-    // RoboRIO rio(transport);
+    spark_mmrt::can::SocketCanTransport transport;
+    std::string interface = (argc > 1) ? argv[1] : "vcan0";
+    transport.open(interface);
+    SparkMax motor(transport, 0); 
+    RoboRIO rio(transport);
 
     UIState ui;
     RunState run;
