@@ -32,12 +32,15 @@ struct UIState {
     bool is_running = true;
 };
 
-int main(int argc, char* argv[]) {
-    spark_mmrt::can::SocketCanTransport transport;
-    std::string interface = (argc > 1) ? argv[1] : "vcan0";
-    transport.open(interface);
-    SparkMax motor(transport, 0); 
-    RoboRIO rio(transport);
+int main() {     // int main(int argc, char* argv[]) {
+    // std::signal(SIGINT, onSignal);
+    // std::signal(SIGTERM, onSignal);
+
+    // spark_mmrt::can::SocketCanTransport transport;
+    // std::string interface = (argc > 1) ? argv[1] : "vcan0";
+    // transport.open(interface);
+    // SparkMax motor(transport, 0); 
+    // RoboRIO rio(transport);
 
     UIState ui;
     RunState run;
@@ -48,7 +51,14 @@ int main(int argc, char* argv[]) {
     noecho();              
     keypad(stdscr, TRUE);  
     nodelay(stdscr, TRUE); 
+    curs_set(0);
 
+    if (has_colors() == TRUE) {
+        start_color();
+        init_pair(1, COLOR_CYAN, COLOR_BLACK);
+        init_pair(2, COLOR_GREEN, COLOR_BLACK);
+        init_pair(3, COLOR_YELLOW, COLOR_BLACK);
+    }
     while (ui.is_running) {
         int h, w;
         getmaxyx(stdscr, h, w);
@@ -57,7 +67,7 @@ int main(int argc, char* argv[]) {
 
         int ch = getch();
         
-        // toggling between Run and Pidf
+        // toggling between Run and PIDF
         switch (ch) {
             case 'q':
             case 'Q':
@@ -84,7 +94,7 @@ int main(int argc, char* argv[]) {
                 } break;
 
             case '+':
-            case '=':
+            case '=': // don't have to hold down shift 
                 if (ui.active_panel == Panel::Run) {
                     if (run.active_field == 0) run.mode = (run.mode + 2) % 3;
                     else if (run.active_field == 1) run.setpoint +=0.05f;
@@ -93,7 +103,7 @@ int main(int argc, char* argv[]) {
                     if (pidf.active_field == 0) pidf.p += 0.001f;
                     else if (pidf.active_field == 1) pidf.i += 0.001f;
                     else if (pidf.active_field == 2) pidf.d += 0.001f;
-                    else if (pidf.active_field == 3) pidf.d += 0.001f;
+                    else if (pidf.active_field == 3) pidf.f += 0.001f;
                 } break;
 
             case '-':
@@ -111,21 +121,28 @@ int main(int argc, char* argv[]) {
             
         }
 
+        // motor.heartbeat();
+
         werase(stdscr); 
         box(stdscr, 0, 0); 
         
         mvhline(4, 1, ACS_HLINE, w - 2); 
         mvhline(mid_y, 1, ACS_HLINE, w - 2);
         mvvline(5, mid_x, ACS_VLINE, mid_y - 5); 
-    
+
+        attron(COLOR_PAIR(1) | A_BOLD);
         mvprintw(0, 2, " SparkMAX control panel ");
-        mvprintw(2, 2, "CAN ID: %d | Press 'q' to quit | Left/Right arrows change tabs", ui.current_can_id);
+        attroff(COLOR_PAIR(1) | A_BOLD);
+        mvprintw(2, 2, "CAN ID: %d | Press 'q' to quit | Left/Right arrows change tabs | Up/Down arrows to navigate ", ui.current_can_id);
+
+        int run_center = (mid_x/2) - 7; 
+        int pidf_center = mid_x + ((w - mid_x)/2) - 8; // '-8' is ~ half the the length of the string
 
         bool run_focus = (ui.active_panel == Panel::Run);
 
-        if (run_focus) attron(A_REVERSE); 
-        mvprintw(5, 2, " - Run panel - ");
-        if (run_focus) attroff(A_REVERSE);
+        if (run_focus) attron(COLOR_PAIR(1) | A_BOLD); 
+        mvprintw(5, run_center, " - Run panel - ");
+        if (run_focus) attroff(COLOR_PAIR(1) | A_BOLD);
 
         if (run_focus && run.active_field == 0) attron(A_REVERSE);
         mvprintw(7, 4, "Control Mode: %d", run.mode);
@@ -141,9 +158,9 @@ int main(int argc, char* argv[]) {
 
         bool pidf_focus = (ui.active_panel == Panel::Pidf);
 
-        if (pidf_focus) attron(A_REVERSE); 
-        mvprintw(5, mid_x + 2, " - PIDF tuning - ");
-        if (pidf_focus) attroff(A_REVERSE);
+        if (pidf_focus) attron(COLOR_PAIR(1) | A_BOLD); 
+        mvprintw(5, pidf_center, " - PIDF tuning - ");
+        if (pidf_focus) attroff(COLOR_PAIR(1) | A_BOLD);
 
         if (pidf_focus && pidf.active_field == 0) attron(A_REVERSE);
         mvprintw(7, mid_x + 4, "P: %.4f", pidf.p);
@@ -161,11 +178,17 @@ int main(int argc, char* argv[]) {
         mvprintw(10, mid_x + 4, "F: %.4f", pidf.f);
         if (pidf_focus && pidf.active_field == 3) attroff(A_REVERSE);
 
+
+        attron(COLOR_PAIR(3) | A_BOLD);
         mvprintw(mid_y + 1, 2, " - Live feedback - ");
+        attroff(COLOR_PAIR(3) | A_BOLD);
+
+        attron(COLOR_PAIR(2));
         mvprintw(mid_y + 3, 4, "Position: 0.000");
         mvprintw(mid_y + 4, 4, "Velocity: 0.000 RPM");
         mvprintw(mid_y + 5, 4, "Current:  0.000 A");
         mvprintw(mid_y + 6, 4, "Voltage:  0.000 V");
+        attroff(COLOR_PAIR(2));
 
         refresh();
 
