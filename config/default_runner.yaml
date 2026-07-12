@@ -1,0 +1,44 @@
+log_level: info
+
+mock_runners:
+  - name: runner1
+    can_interface: vcan0
+    can_bitrate: 1000000
+    filters:
+      - can_id: 0x02050000
+        can_mask: 0x0FFFFC00
+      - can_id: 0x0205C000
+        can_mask: 0x0FFFC000
+      - can_id: 0x02053800
+        can_mask: 0x0FFFFFC0
+      - can_id: 0x01011840
+        can_mask: 0x0FFFFFFF
+    can_nodes:
+      - name: node1
+        device_id: 1
+        max_velocity: 5.0
+        max_acceleration: 15.0
+        status_rates: [10, 1, 20, 0, 0, 20, 0, 0, 20]
+        listen_for_heartbeat: true
+        heartbeat_timeout: 1.0
+        flash:
+          position_factor: 1.0
+          velocity_factor: 1.0
+          abs_position_factor: 360.0
+          abs_velocity_factor: 360.0
+          control_type: 0
+          sensor_type: 4
+      - name: node2
+        device_id: 2
+        max_velocity: 5.0
+        max_acceleration: 15.0
+        status_rates: [10, 1, 20, 0, 0, 20, 0, 0, 20]
+        listen_for_heartbeat: false
+        heartbeat_timeout: 1.0
+        flash:
+          position_factor: 1.0
+          velocity_factor: 1.0
+          abs_position_factor: 360.0
+          abs_velocity_factor: 360.0
+          control_type: 0
+          sensor_type: 1
