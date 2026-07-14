@@ -94,13 +94,13 @@ class SparkMax{
 
 
         void heartbeat();
-        void setDutyCycle(float val);
-        void setVelocity(float val); 
-        void setMMVelocity(float val);
-        void setPosition(float val);
-        void setMMPosition(float val);
-        void setVoltage(float val);
-        void setCurrent(float val);
+        void setDutyCycle(float val, uint8_t pidSlot = 0);
+        void setVelocity(float val, uint8_t pidSlot = 0); 
+        void setMMVelocity(float val, uint8_t pidSlot = 0);
+        void setPosition(float val, uint8_t pidSlot = 0);
+        void setMMPosition(float val, uint8_t pidSlot = 0);
+        void setVoltage(float val, uint8_t pidSlot = 0);
+        void setCurrent(float val, uint8_t pidSlot = 0);
         void setEncoderPosition(float val); 
 
         int8_t processFrame(const spark_mmrt::can::CanFrame & f); 
