@@ -78,15 +78,15 @@ constexpr uint64_t sparkMaxDeviceIDMask(uint8_t canID) {
 
 spark_mmrt::can::CanFrame heartbeatFrame();
 
-spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID);
+spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID, uint8_t pidSlot);
 
 
-spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID); 
-spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID);
-spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID);
-spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID);
-spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID);
-spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID);
+spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot); 
+spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot);
+spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot);
+spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot);
+spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot);
+spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot);
 spark_mmrt::can::CanFrame setEncoderPositionFrame(float position, uint8_t deviceID); 
 
 spark_mmrt::can::CanFrame paramWriteFrame(uint32_t val, uint8_t paramID, uint8_t deviceID);

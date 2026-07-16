@@ -28,41 +28,41 @@ void SparkMax::heartbeat() {
   transport.send(heartbeatFrame());
 }
 
-void SparkMax::setDutyCycle(float val) {
+void SparkMax::setDutyCycle(float val, uint8_t pidSlot) {
   if (!std::isfinite(val)) throw std::invalid_argument("Invalid Duty Cycle");
 
-  transport.send(setDutyCycleFrame(val, ID));
+  transport.send(setDutyCycleFrame(val, ID, pidSlot));
 }
-void SparkMax::setVelocity(float val){
+void SparkMax::setVelocity(float val, uint8_t pidSlot){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid Velocity Setpoint ");
 
-  transport.send(setVelocityFrame(val, ID)); 
+  transport.send(setVelocityFrame(val, ID, pidSlot)); 
 
 }
-void SparkMax::setMMVelocity(float val){
+void SparkMax::setMMVelocity(float val, uint8_t pidSlot){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid MM Velocity Setpoint ");
 
-  transport.send(setMMVelocityFrame(val, ID)); 
+  transport.send(setMMVelocityFrame(val, ID, pidSlot)); 
 }
-void SparkMax::setPosition(float val){
+void SparkMax::setPosition(float val, uint8_t pidSlot){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid Position Setpoint ");
 
-  transport.send(setPositionFrame(val, ID)); 
+  transport.send(setPositionFrame(val, ID, pidSlot)); 
 }
-void SparkMax::setMMPosition(float val){
+void SparkMax::setMMPosition(float val, uint8_t pidSlot){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid MM Position Setpoint ");
 
-  transport.send(setMMPositionFrame(val, ID)); 
+  transport.send(setMMPositionFrame(val, ID, pidSlot)); 
 }
-void SparkMax::setVoltage(float val){
+void SparkMax::setVoltage(float val, uint8_t pidSlot){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid Voltage Setpoint ");
 
-  transport.send(setVoltageFrame(val, ID)); 
+  transport.send(setVoltageFrame(val, ID, pidSlot)); 
 }
-void SparkMax::setCurrent(float val){
+void SparkMax::setCurrent(float val, uint8_t pidSlot){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid Current  Setpoint ");
 
-  transport.send(setCurrentFrame(val, ID)); 
+  transport.send(setCurrentFrame(val, ID, pidSlot)); 
 }
 void SparkMax::setEncoderPosition(float val){
   if (!std::isfinite(val)) throw std::invalid_argument("invalid encoder Position (in rotations) ");

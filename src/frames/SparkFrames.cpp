@@ -119,13 +119,14 @@ spark_mmrt::can::CanFrame heartbeatFrame(){
 // - bits 48..49 (byte 6, bits 0..1): PID slot
 // - bit 50 (byte 6, bit 2):  Feed Forward units 
 // - bits 51..63  (byte 6 bit 3 ... end): reserved
-spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
+spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID, uint8_t pidSlot){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::DutyCycle, deviceID);
   auto frame = spark_mmrt::can::CanFrame::Data(ID, 8);
   // Bound check and correction [-1, 1]
   if (dutyCycle > 1.0f) {dutyCycle = 1.0f;}
   else if (dutyCycle < -1.0f) {dutyCycle = -1.0f;}
 
+  if (pidSlot > 3) pidSlot = 3;
 
   frame.data.fill(0); 
   // Setpoint 
@@ -135,7 +136,7 @@ spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
   //Feed Forward 
   packInt16(frame.data, 32, 0);
   //PID SLOT
-  setBits(frame.data, 48, 2, 0); 
+  setBits(frame.data, 48, 2, pidSlot); 
   //Arbitrary FeedForward Units
   setBits(frame.data, 50, 1 , 0);
   //reserved Bits 
@@ -145,10 +146,12 @@ spark_mmrt::can::CanFrame setDutyCycleFrame(float dutyCycle, uint8_t deviceID){
 }
 
 
-spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID){
+spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::VelocitySetpoint, deviceID); 
   auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
 
+  if (pidSlot > 3) pidSlot = 3;
+
   frame.data.fill(0);
   //setpoint
   packFloat32(frame.data, 0, setPoint);
@@ -157,7 +160,7 @@ spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID){
   //feedforward
   packInt16(frame.data, 32, 0);
   //PID SLOT
-  setBits(frame.data, 48, 2, 0);
+  setBits(frame.data, 48, 2, pidSlot);
   //FeedFroward uints
   setBits(frame.data, 50, 1, 0); 
   //reserved alrdy 0
@@ -165,9 +168,11 @@ spark_mmrt::can::CanFrame setVelocityFrame(float setPoint, uint8_t deviceID){
   return frame;
 }
 
-spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID){
+spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::MMVelocitySetpoint, deviceID);
-  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8);
+  
+  if (pidSlot > 3) pidSlot = 3;
 
   frame.data.fill(0); 
 
@@ -177,7 +182,7 @@ spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID){
   //feedforward
   packInt16(frame.data, 32, 0);
   //PID SLOT
-  setBits(frame.data, 48, 2, 0);
+  setBits(frame.data, 48, 2, pidSlot);
   //FeedFroward uints
   setBits(frame.data, 50, 1, 0); 
   //reserved alrdy 0
@@ -185,10 +190,12 @@ spark_mmrt::can::CanFrame setMMVelocityFrame(float setPoint, uint8_t deviceID){
   return frame;
 }
 
-spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID){
+spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::PositionSetpoint, deviceID); 
   auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
 
+  if (pidSlot > 3) pidSlot = 3;
+
   frame.data.fill(0);
   //setpoint
   packFloat32(frame.data, 0, setPoint);
@@ -197,7 +204,7 @@ spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID){
   //feedforward
   packInt16(frame.data, 32, 0);
   //PID SLOT
-  setBits(frame.data, 48, 2, 0);
+  setBits(frame.data, 48, 2, pidSlot);
   //FeedFroward uints
   setBits(frame.data, 50, 1, 0); 
   //reserved alrdy 0
@@ -205,10 +212,12 @@ spark_mmrt::can::CanFrame setPositionFrame(float setPoint, uint8_t deviceID){
   return frame;
 }
 
-spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID){
+spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::MMPositionSetpoint, deviceID);
   auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
 
+  if (pidSlot > 3) pidSlot = 3;
+
   frame.data.fill(0); 
 
   packFloat32(frame.data, 0, setPoint);
@@ -217,7 +226,7 @@ spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID){
   //feedforward
   packInt16(frame.data, 32, 0);
   //PID SLOT
-  setBits(frame.data, 48, 2, 0);
+  setBits(frame.data, 48, 2, pidSlot);
   //FeedFroward uints
   setBits(frame.data, 50, 1, 0); 
   //reserved alrdy 0
@@ -225,10 +234,12 @@ spark_mmrt::can::CanFrame setMMPositionFrame(float setPoint, uint8_t deviceID){
   return frame;
 }
 
-spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID){
+spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::voltageSetpoint, deviceID);
   auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
 
+  if (pidSlot > 3) pidSlot = 3;
+
   frame.data.fill(0); 
 
   packFloat32(frame.data, 0, setPoint);
@@ -237,7 +248,7 @@ spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID){
   //feedforward
   packInt16(frame.data, 32, 0);
   //PID SLOT
-  setBits(frame.data, 48, 2, 0);
+  setBits(frame.data, 48, 2, pidSlot);
   //FeedFroward uints
   setBits(frame.data, 50, 1, 0); 
   //reserved alrdy 0
@@ -245,9 +256,11 @@ spark_mmrt::can::CanFrame setVoltageFrame(float setPoint, uint8_t deviceID){
   return frame;
 }
 
-spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID){
+spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID, uint8_t pidSlot){
   const uint32_t ID = makeArbID(DEVICE_TYPE, MANUFACTURER, api::currentSetpoint, deviceID);
-  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8); 
+  auto frame = spark_mmrt::can::CanFrame::Data(ID, 8);
+
+  if (pidSlot > 3) pidSlot = 3; 
 
   frame.data.fill(0); 
 
@@ -257,7 +270,7 @@ spark_mmrt::can::CanFrame setCurrentFrame(float setPoint, uint8_t deviceID){
   //feedforward
   packInt16(frame.data, 32, 0);
   //PID SLOT
-  setBits(frame.data, 48, 2, 0);
+  setBits(frame.data, 48, 2, pidSlot);
   //FeedFroward uints
   setBits(frame.data, 50, 1, 0); 
   //reserved alrdy 0
