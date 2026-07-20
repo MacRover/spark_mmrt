@@ -36,6 +36,10 @@ class SensorType(Enum):
 class ParameterID(Enum):
     CONTROL_TYPE = 5
     SENSOR_TYPE = 9
+    P0 = 13
+    I0 = 14
+    D0 = 15
+    F0 = 16
     POSITION_FACTOR = 112
     VELOCITY_FACTOR = 113
     DUTY_CYCLE_POSITION_FACTOR = 139
@@ -173,6 +177,10 @@ class SparkMock:
         self.__active_setpoint = 0.0
         self.__control_type = ControlType(params.get("control_type", 0))
         self.__sensor_type = SensorType(params.get("sensor_type", 1))
+        self.__p = float(params.get("p", 0.0))
+        self.__i = float(params.get("i", 0.0))
+        self.__d = float(params.get("d", 0.0))
+        self.__f = float(params.get("f", 0.0))
         self.__pos_factor = params.get("position_factor", 1.0)
         self.__vel_factor = params.get("velocity_factor", 1.0)
         self.__abs_pos_factor = params.get("abs_position_factor", 1.0)
@@ -304,6 +312,14 @@ class SparkMock:
         param_id = ParameterID(param_id)
         if param_id == ParameterID.CONTROL_TYPE:
             return self.__control_type.value, ParameterType.UINT
+        elif param_id == ParameterID.P0:
+            return self.__p, ParameterType.FLOAT
+        elif param_id == ParameterID.I0:
+            return self.__i, ParameterType.FLOAT
+        elif param_id == ParameterID.D0:
+            return self.__d, ParameterType.FLOAT
+        elif param_id == ParameterID.F0:
+            return self.__f, ParameterType.FLOAT
         elif param_id == ParameterID.POSITION_FACTOR:
             return self.__pos_factor, ParameterType.FLOAT
         elif param_id == ParameterID.VELOCITY_FACTOR:
@@ -330,6 +346,26 @@ class SparkMock:
             self.__control_type = ControlType(param_value)
             type = ParameterType.UINT
             self.logger.info(f"Updated Control Type to {self.__control_type.name}")
+
+        elif param_id == ParameterID.P0:
+            self.__p, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated P0 to {self.__p}")
+
+        elif param_id == ParameterID.I0:
+            self.__i, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated I0 to {self.__i}")
+
+        elif param_id == ParameterID.D0:
+            self.__d, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated D0 to {self.__d}")
+
+        elif param_id == ParameterID.F0:
+            self.__f, = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated F0 to {self.__f}")
 
         elif param_id == ParameterID.POSITION_FACTOR:
             self.__pos_factor, = struct.unpack("<f", struct.pack("<I", param_value))
