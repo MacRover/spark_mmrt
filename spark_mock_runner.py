@@ -111,7 +111,9 @@ class Status5:
     abs_encoder_pos = 0.0
     abs_encoder_vel = 0.0
     def __call__(self):
-        return struct.pack("<ff", self.abs_encoder_vel, self.abs_encoder_pos)
+        # [John] Turns out, duty cycle encoder reports velocity in per seconds, not per minute as the docs claim
+        # For parity's sake, I'm applying the same unit conversion here too
+        return struct.pack("<ff", self.abs_encoder_vel / 60.0, self.abs_encoder_pos)
 
 class Status6:
     duty_cycle = 0.0
