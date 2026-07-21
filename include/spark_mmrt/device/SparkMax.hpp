@@ -63,6 +63,8 @@ class SparkMax{
         std::optional<ParamWriteResponse> setIdleMode(IdleMode mode,  std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setControlType(ControlType type, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setSensorType(SensorType type, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setDutyCyclePosConversionFactor(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setDutyCycleVelConversionFactor(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setP(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setI(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setD(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
