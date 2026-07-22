@@ -357,6 +357,12 @@ std::optional<ParamWriteResponse> SparkMax::setControlType(ControlType type, std
 std::optional<ParamWriteResponse> SparkMax::setSensorType(SensorType type, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_SensorType, uint32_t(type), timeout); 
 }
+std::optional<ParamWriteResponse> SparkMax::setDutyCyclePosConversionFactor(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_DutyCyclePosConversionFactor, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setDutyCycleVelConversionFactor(float val, std::chrono::milliseconds timeout){
+  return writeParam(param::PARAM_DutyCycleVelConversionFactor, val, timeout);
+}
 
 std::optional<ParamWriteResponse> SparkMax::setP(float val, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_P0, val, timeout);
