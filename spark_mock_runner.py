@@ -502,7 +502,14 @@ class SparkMock:
             type = ParameterType.BOOL
 
         if update_setpoint_factors or param_id == ParameterID.SENSOR_TYPE:
-            sensor = SensorType(param_value)
+            if param_id == ParameterID.SENSOR_TYPE:
+                sensor = SensorType(param_value)
+                self.__sensor_type = sensor
+                type = ParameterType.UINT
+                self.logger.info(f"Updated Sensor Type to {self.__sensor_type.name}")
+            else:
+                sensor = self.__sensor_type
+
             if sensor == SensorType.MAIN_ENCODER:
                 self.__setpoint_pos_factor = 1.0
                 self.__setpoint_vel_factor = 1.0
@@ -512,11 +519,6 @@ class SparkMock:
             elif sensor == SensorType.NONE:
                 self.__setpoint_pos_factor = 0.0
                 self.__setpoint_vel_factor = 0.0
-
-            self.__sensor_type = sensor
-            type = ParameterType.UINT
-            if param_id == ParameterID.SENSOR_TYPE:
-                self.logger.info(f"Updated Sensor Type to {self.__sensor_type.name}")
 
         return True, type
     
