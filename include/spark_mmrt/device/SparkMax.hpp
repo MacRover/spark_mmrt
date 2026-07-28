@@ -68,7 +68,12 @@ class SparkMax{
         std::optional<ParamWriteResponse> setP(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setI(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setD(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
-        std::optional<ParamWriteResponse> setF(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setF(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200}); 
+        // kept the above setP/I/D/F for now, but the below are preferred since they allow for changing the PID slot. The above defaults to slot 0.
+        std::optional<ParamWriteResponse> setP(float val, uint8_t pidSlot, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setI(float val, uint8_t pidSlot, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setD(float val, uint8_t pidSlot, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
+        std::optional<ParamWriteResponse> setF(float val, uint8_t pidSlot, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setIZ(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setDFilter(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});
         std::optional<ParamWriteResponse> setOutputMin(float val, std::chrono::milliseconds timeout = std::chrono::milliseconds{200});

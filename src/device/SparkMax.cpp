@@ -258,6 +258,42 @@ void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t va
     case param::PARAM_F0:
       p.F = uInt32toFloat(value);
       break;
+    case param::PARAM_P1:
+      p.P1 = uInt32toFloat(value);
+      break;
+    case param::PARAM_I1:
+      p.I1 = uInt32toFloat(value);
+      break;
+    case param::PARAM_D1:
+      p.D1 = uInt32toFloat(value);
+      break;
+    case param::PARAM_F1:
+      p.F1 = uInt32toFloat(value);
+      break;
+    case param::PARAM_P2:
+      p.P2 = uInt32toFloat(value);
+      break;
+    case param::PARAM_I2:
+      p.I2 = uInt32toFloat(value);
+      break;
+    case param::PARAM_D2:
+      p.D2 = uInt32toFloat(value);
+      break;
+    case param::PARAM_F2:
+      p.F2 = uInt32toFloat(value);
+      break;
+    case param::PARAM_P3:
+      p.P3 = uInt32toFloat(value);
+      break;
+    case param::PARAM_I3:
+      p.I3 = uInt32toFloat(value);
+      break;
+    case param::PARAM_D3:
+      p.D3 = uInt32toFloat(value);
+      break;
+    case param::PARAM_F3:
+      p.F3 = uInt32toFloat(value);
+      break;
     case param::PARAM_IZ0:
       p.IZ = uInt32toFloat(value);
       break;
@@ -347,6 +383,14 @@ void SparkMax::assignParam(param::Params& p, param::ParamID paramID, uint32_t va
   }
 }
 
+// helps to map the pid slot to the correct parameter ID
+static param::ParamID gainParamForSlot(param::ParamID baseParam, uint8_t pidSlot) {
+  if (pidSlot > 3) {
+    throw std::invalid_argument("pidSlot must be in the range 0-3");
+  }
+  return static_cast<param::ParamID>(static_cast<uint32_t>(baseParam) + static_cast<uint32_t>(pidSlot) * 8u); // gain parameters are seperated by 8 slots.
+}
+
 std::optional<ParamWriteResponse> SparkMax::setIdleMode(IdleMode mode, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_IdleMode, uint32_t(mode), timeout);
 
@@ -367,14 +411,26 @@ std::optional<ParamWriteResponse> SparkMax::setDutyCycleVelConversionFactor(floa
 std::optional<ParamWriteResponse> SparkMax::setP(float val, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_P0, val, timeout);
 }
+std::optional<ParamWriteResponse> SparkMax::setP(float val, uint8_t pidSlot, std::chrono::milliseconds timeout){
+  return writeParam(gainParamForSlot(param::PARAM_P0, pidSlot), val, timeout);
+}
 std::optional<ParamWriteResponse> SparkMax::setI(float val, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_I0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setI(float val, uint8_t pidSlot, std::chrono::milliseconds timeout){
+  return writeParam(gainParamForSlot(param::PARAM_I0, pidSlot), val, timeout);
 }
 std::optional<ParamWriteResponse> SparkMax::setD(float val, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_D0, val, timeout);
 }
+std::optional<ParamWriteResponse> SparkMax::setD(float val, uint8_t pidSlot, std::chrono::milliseconds timeout){
+  return writeParam(gainParamForSlot(param::PARAM_D0, pidSlot), val, timeout);
+}
 std::optional<ParamWriteResponse> SparkMax::setF(float val, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_F0, val, timeout);
+}
+std::optional<ParamWriteResponse> SparkMax::setF(float val, uint8_t pidSlot, std::chrono::milliseconds timeout){
+  return writeParam(gainParamForSlot(param::PARAM_F0, pidSlot), val, timeout);
 }
 std::optional<ParamWriteResponse> SparkMax::setIZ(float val, std::chrono::milliseconds timeout){
   return writeParam(param::PARAM_IZ0, val, timeout);

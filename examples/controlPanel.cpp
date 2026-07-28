@@ -98,23 +98,23 @@ static void retargetMotor(SparkMax& motor, UIState& ui, uint8_t new_id) {
 }
 
 // Writes the edited PIDF value to the corresponding SparkMAX parameter (P0/I0/D0/F0)
-static void applyPidfEdit(SparkMax& motor, PidfState& pidf, int field) {
+static void applyPidfEdit(SparkMax& motor, PidfState& pidf, int field, uint8_t pidSlot) {
     if (field == 0) {
-        motor.setP(pidf.p, paramTimeout);
+        motor.setP(pidf.p, pidSlot, paramTimeout);
     } else if (field == 1) {
-        motor.setI(pidf.i, paramTimeout);
+        motor.setI(pidf.i, pidSlot, paramTimeout);
     } else if (field == 2) {
-        motor.setD(pidf.d, paramTimeout);
+        motor.setD(pidf.d, pidSlot, paramTimeout);
     } else if (field == 3) {
-        motor.setF(pidf.f, paramTimeout);
+        motor.setF(pidf.f, pidSlot, paramTimeout);
     }
 }
 
-static void applyAllPidf(SparkMax& motor, const PidfState& pidf) {
-    motor.setP(pidf.p, paramTimeout);
-    motor.setI(pidf.i, paramTimeout);
-    motor.setD(pidf.d, paramTimeout);
-    motor.setF(pidf.f, paramTimeout);
+static void applyAllPidf(SparkMax& motor, const PidfState& pidf, uint8_t pidSlot) {
+    motor.setP(pidf.p, pidSlot, paramTimeout);
+    motor.setI(pidf.i, pidSlot, paramTimeout);
+    motor.setD(pidf.d, pidSlot, paramTimeout);
+    motor.setF(pidf.f, pidSlot, paramTimeout);
 }
 
 static void applyConfigEdit(SparkMax& motor, ConfigState& config, int field) {
@@ -253,13 +253,13 @@ int main(int argc, char* argv[]) {
     EncoderState encoder;
 
     PanelState saved;
-    if (loadPanelState(saved)) {
+        if (loadPanelState(saved)) {
         run = saved.run;
         pidf = saved.pidf;
         config = saved.config;
         encoder = saved.encoder;
         retargetMotor(motor, ui, saved.can_id);
-        applyAllPidf(motor, pidf);
+            applyAllPidf(motor, pidf, run.slot);
         applyAllConfig(motor, config);
         applyAllEncoder(motor, encoder);
     }
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
                     else if (pidf.active_field == 1) pidf.i += 0.001f;
                     else if (pidf.active_field == 2) pidf.d += 0.001f;
                     else if (pidf.active_field == 3) pidf.f += 0.001f;
-                    applyPidfEdit(motor, pidf, pidf.active_field);
+                    applyPidfEdit(motor, pidf, pidf.active_field, run.slot);
                 } else if (ui.active_panel == Panel::Config) {
                     if (config.active_field == 0) {
                         config.control_type = (config.control_type + 1) % controlTypeCount;
@@ -353,7 +353,7 @@ int main(int argc, char* argv[]) {
                     else if (pidf.active_field == 1) pidf.i -= 0.001f;
                     else if (pidf.active_field == 2) pidf.d -= 0.001f;
                     else if (pidf.active_field == 3) pidf.f -= 0.001f;
-                    applyPidfEdit(motor, pidf, pidf.active_field);
+                    applyPidfEdit(motor, pidf, pidf.active_field, run.slot);
                 } else if (ui.active_panel == Panel::Config) {
                     if (config.active_field == 0) {
                         config.control_type = (config.control_type + controlTypeCount - 1) % controlTypeCount;
@@ -428,7 +428,6 @@ int main(int argc, char* argv[]) {
         int left_center = (mid_x / 2) - 7;
         int right_center = mid_x + ((w - mid_x) / 2) - 8;
 
-        // Top-left: Run
         auto drawField = [](bool panel_focused, int active_field, int target_field, int y, int x, const char* format, auto value) {
             bool highlight = panel_focused && (active_field == target_field);
             if (highlight) attron(A_REVERSE);
