@@ -2,10 +2,21 @@
 #include "spark_mmrt/device/roboRIO.hpp"
 #include <ncurses.h>
 #include <chrono>
+#include <cmath>
 #include <csignal>
+#include <cstdio>
 #include <fstream>
 #include <string>
 #include <thread>
+
+#define GREEN_FOREGROUND_PAIR 2
+#define RED_FOREGROUND_PAIR 4
+
+#define HIGHLIGHT_VALIDITY(updated, x) if (has_colors())\
+    {\
+        if (updated) attron(COLOR_PAIR(GREEN_FOREGROUND_PAIR));\
+        else         attron(COLOR_PAIR(RED_FOREGROUND_PAIR));\
+    } (x);\
 
 namespace {
 
@@ -16,6 +27,7 @@ constexpr uint8_t maxCanId = 63;
 constexpr int controlTypeCount = 8;
 constexpr int sensorTypeCount = 5;
 constexpr auto paramTimeout = std::chrono::milliseconds{150};
+constexpr auto feedbackStaleAfter = std::chrono::milliseconds{500};
 constexpr const char* statePath = "config/control_panel_state";
 
 void onSignal(int) {
@@ -46,6 +58,64 @@ int fieldCount(Panel panel) {
         case Panel::Encoder: return 3;
     }
     return 0;
+}
+
+constexpr float unitRotations = 1.0f;
+constexpr float unitRadians = 6.28318530718f; 
+constexpr float unitDegrees = 360.0f;
+
+const char* runModeLabel(int mode) {
+    switch (mode) {
+        case 0: return "duty";
+        case 1: return "velocity";
+        case 2: return "voltage";
+        default: return "?";
+    }
+}
+
+const char* controlTypeLabel(int type) {
+    switch (type) {
+        case 0: return "duty";
+        case 1: return "velocity";
+        case 2: return "voltage";
+        case 3: return "position";
+        case 4: return "smartmotion";
+        case 5: return "smartvel";
+        case 6: return "mm_pos";
+        case 7: return "mm_vel";
+        default: return "?";
+    }
+}
+
+const char* sensorTypeLabel(int type) {
+    switch (type) {
+        case 0: return "none";
+        case 1: return "main enc";
+        case 2: return "analog";
+        case 3: return "alt enc";
+        case 4: return "duty enc";
+        default: return "?";
+    }
+}
+
+const char* unitFactorLabel(float factor) {
+    if (std::fabs(factor - unitRotations) < 0.01f) return "rotations";
+    if (std::fabs(factor - unitRadians) < 0.01f) return "radians";
+    if (std::fabs(factor - unitDegrees) < 0.01f) return "degrees";
+    return "rotations";
+}
+
+float cycleUnitFactor(float current, int direction) {
+    const float presets[] = {unitRotations, unitRadians, unitDegrees};
+    int index = 0;
+    for (int i = 0; i < 3; ++i) {
+        if (std::fabs(current - presets[i]) < 0.01f) {
+            index = i;
+            break;
+        }
+    }
+    index = (index + direction + 3) % 3;
+    return presets[index];
 }
 
 } 
@@ -251,6 +321,8 @@ int main(int argc, char* argv[]) {
     PidfState pidf;
     ConfigState config;
     EncoderState encoder;
+    auto last_feedback_at = std::chrono::steady_clock::time_point{};
+    bool have_feedback = false;
 
     PanelState saved;
         if (loadPanelState(saved)) {
@@ -276,6 +348,7 @@ int main(int argc, char* argv[]) {
         init_pair(1, COLOR_CYAN, COLOR_BLACK);
         init_pair(2, COLOR_GREEN, COLOR_BLACK);
         init_pair(3, COLOR_YELLOW, COLOR_BLACK);
+        init_pair(4, COLOR_RED, COLOR_BLACK);
     }
 
     while (ui.is_running && g_running) {
@@ -315,6 +388,7 @@ int main(int argc, char* argv[]) {
                         run.slot += 1;
                     } else if (run.active_field == 3 && ui.current_can_id < maxCanId) {
                         retargetMotor(motor, ui, static_cast<uint8_t>(ui.current_can_id + 1));
+                        have_feedback = false; 
                     }
                 } else if (ui.active_panel == Panel::Pidf) {
                     if (pidf.active_field == 0) pidf.p += 0.001f;
@@ -330,9 +404,13 @@ int main(int argc, char* argv[]) {
                     }
                     applyConfigEdit(motor, config, config.active_field);
                 } else {
-                    if (encoder.active_field == 0) encoder.position_factor += 1.0f;
-                    else if (encoder.active_field == 1) encoder.velocity_factor += 1.0f;
-                    else encoder.zero_offset += 0.05f;
+                    if (encoder.active_field == 0) {
+                        encoder.position_factor = cycleUnitFactor(encoder.position_factor, 1);
+                    } else if (encoder.active_field == 1) {
+                        encoder.velocity_factor = cycleUnitFactor(encoder.velocity_factor, 1);
+                    } else {
+                        encoder.zero_offset += 0.05f;
+                    }
                     applyEncoderEdit(motor, encoder, encoder.active_field);
                 }
                 break;
@@ -347,6 +425,7 @@ int main(int argc, char* argv[]) {
                         run.slot -= 1;
                     } else if (run.active_field == 3 && ui.current_can_id > 0) {
                         retargetMotor(motor, ui, static_cast<uint8_t>(ui.current_can_id - 1));
+                        have_feedback = false;
                     }
                 } else if (ui.active_panel == Panel::Pidf) {
                     if (pidf.active_field == 0) pidf.p -= 0.001f;
@@ -362,10 +441,10 @@ int main(int argc, char* argv[]) {
                     }
                     applyConfigEdit(motor, config, config.active_field);
                 } else {
-                    if (encoder.active_field == 0 && encoder.position_factor > 0.0f) {
-                        encoder.position_factor -= 1.0f;
-                    } else if (encoder.active_field == 1 && encoder.velocity_factor > 0.0f) {
-                        encoder.velocity_factor -= 1.0f;
+                    if (encoder.active_field == 0) {
+                        encoder.position_factor = cycleUnitFactor(encoder.position_factor, -1);
+                    } else if (encoder.active_field == 1) {
+                        encoder.velocity_factor = cycleUnitFactor(encoder.velocity_factor, -1);
                     } else {
                         encoder.zero_offset -= 0.05f;
                     }
@@ -379,7 +458,10 @@ int main(int argc, char* argv[]) {
             auto& frame = *f;
             uint8_t device = uint8_t(frame.arbId & 0x03F);
             if (device == motor.getID()) {
-                motor.processFrame(frame);
+                if (motor.processFrame(frame) >= 0) {
+                    last_feedback_at = std::chrono::steady_clock::now();
+                    have_feedback = true;
+                }
             }
         }
 
@@ -429,7 +511,7 @@ int main(int argc, char* argv[]) {
         int right_center = mid_x + ((w - mid_x) / 2) - 8;
 
         auto drawField = [](bool panel_focused, int active_field, int target_field, int y, int x, const char* format, auto value) {
-            bool highlight = panel_focused && (active_field == target_field);
+            const bool highlight = panel_focused && (active_field == target_field);
             if (highlight) attron(A_REVERSE);
             mvprintw(y, x, format, value);
             if (highlight) attroff(A_REVERSE);
@@ -440,7 +522,19 @@ int main(int argc, char* argv[]) {
         mvprintw(top_title_y, left_center, " - Run panel - ");
         if (run_focus) attroff(COLOR_PAIR(1) | A_BOLD);
 
-        drawField(run_focus, run.active_field, 0, top_field_y,     4, "Control Mode: %d", run.mode);
+        char modeBuf[32];
+        char controlTypeBuf[32];
+        char sensorTypeBuf[32];
+        char posFactorBuf[40];
+        char velFactorBuf[40];
+
+        std::snprintf(modeBuf, sizeof(modeBuf), "%s (%d)", runModeLabel(run.mode), run.mode);
+        std::snprintf(controlTypeBuf, sizeof(controlTypeBuf), "%s (%d)", controlTypeLabel(config.control_type), config.control_type);
+        std::snprintf(sensorTypeBuf, sizeof(sensorTypeBuf), "%s (%d)", sensorTypeLabel(config.sensor_type), config.sensor_type);
+        std::snprintf(posFactorBuf, sizeof(posFactorBuf), "%s (%.2f)", unitFactorLabel(encoder.position_factor), encoder.position_factor);
+        std::snprintf(velFactorBuf, sizeof(velFactorBuf), "%s (%.2f)", unitFactorLabel(encoder.velocity_factor), encoder.velocity_factor);
+
+        drawField(run_focus, run.active_field, 0, top_field_y,     4, "Control Mode: %s", modeBuf);
         drawField(run_focus, run.active_field, 1, top_field_y + 1, 4, "Setpoint:     %.2f", run.setpoint);
         drawField(run_focus, run.active_field, 2, top_field_y + 2, 4, "PID Slot:     %d", run.slot);
         drawField(run_focus, run.active_field, 3, top_field_y + 3, 4, "Device CAN ID: %d", ui.current_can_id);
@@ -460,28 +554,32 @@ int main(int argc, char* argv[]) {
         mvprintw(bot_title_y, left_center, " - Config panel - ");
         if (config_focus) attroff(COLOR_PAIR(1) | A_BOLD);
 
-        drawField(config_focus, config.active_field, 0, bot_field_y,     4, "Control Type: %d", config.control_type);
-        drawField(config_focus, config.active_field, 1, bot_field_y + 1, 4, "Sensor Type:  %d", config.sensor_type);
+        drawField(config_focus, config.active_field, 0, bot_field_y,     4, "Control Type: %s", controlTypeBuf);
+        drawField(config_focus, config.active_field, 1, bot_field_y + 1, 4, "Sensor Type:  %s", sensorTypeBuf);
 
         // Bottom-right: Encoder
         if (encoder_focus) attron(COLOR_PAIR(1) | A_BOLD);
         mvprintw(bot_title_y, right_center, " - Encoder panel - ");
         if (encoder_focus) attroff(COLOR_PAIR(1) | A_BOLD);
 
-        drawField(encoder_focus, encoder.active_field, 0, bot_field_y,     mid_x + 4, "Abs Pos Factor: %.2f", encoder.position_factor);
-        drawField(encoder_focus, encoder.active_field, 1, bot_field_y + 1, mid_x + 4, "Abs Vel Factor: %.2f", encoder.velocity_factor);
+        drawField(encoder_focus, encoder.active_field, 0, bot_field_y,     mid_x + 4, "Abs Pos Factor: %s", posFactorBuf);
+        drawField(encoder_focus, encoder.active_field, 1, bot_field_y + 1, mid_x + 4, "Abs Vel Factor: %s", velFactorBuf);
         drawField(encoder_focus, encoder.active_field, 2, bot_field_y + 2, mid_x + 4, "Zero Offset:    %.3f", encoder.zero_offset);
 
         const auto& s0 = motor.getStatus0();
         const auto& s2 = motor.getStatus2();
+        const bool feedback_fresh = have_feedback && ((std::chrono::steady_clock::now() - last_feedback_at) < feedbackStaleAfter);
 
         attron(COLOR_PAIR(3) | A_BOLD);
         mvprintw(feedback_y + 1, 2, " Live feedback ");
         attroff(COLOR_PAIR(3) | A_BOLD);
 
-        attron(COLOR_PAIR(2));
-        mvprintw(feedback_y + 1, 18, "Pos %.3f | Vel %.3f RPM | Curr %.3f A | Volt %.3f V", s2.primaryEncoderPosition, s2.primaryEncoderVelocity, s0.current, s0.voltage);
-        attroff(COLOR_PAIR(2));
+        HIGHLIGHT_VALIDITY(feedback_fresh,
+            mvprintw(feedback_y + 1, 18, "Pos %.3f | Vel %.3f RPM | Curr %.3f A | Volt %.3f V  [%s]", s2.primaryEncoderPosition, s2.primaryEncoderVelocity, s0.current, s0.voltage, feedback_fresh ? "live" : "stale"));
+        if (has_colors()) {
+            attroff(COLOR_PAIR(RED_FOREGROUND_PAIR));
+            attroff(COLOR_PAIR(GREEN_FOREGROUND_PAIR));
+        }
 
         refresh();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
