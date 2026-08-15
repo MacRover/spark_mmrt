@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <fstream>
 #include <string>
-#include <thread>
 
 #define GREEN_FOREGROUND_PAIR 2
 #define RED_FOREGROUND_PAIR 4
@@ -69,6 +68,7 @@ const char* runModeLabel(int mode) {
         case 0: return "duty";
         case 1: return "velocity";
         case 2: return "voltage";
+        case 3: return "position";
         default: return "?";
     }
 }
@@ -351,6 +351,13 @@ int main(int argc, char* argv[]) {
         init_pair(4, COLOR_RED, COLOR_BLACK);
     }
 
+    auto drawField = [](bool panel_focused, int active_field, int target_field, int y, int x, const char* format, auto value) {
+        const bool highlight = panel_focused && (active_field == target_field);
+        if (highlight) attron(A_REVERSE);
+        mvprintw(y, x, format, value);
+        if (highlight) attroff(A_REVERSE);
+    };
+
     while (ui.is_running && g_running) {
         int h, w;
         getmaxyx(stdscr, h, w);
@@ -381,7 +388,7 @@ int main(int argc, char* argv[]) {
             case '=': // don't have to hold down shift
                 if (ui.active_panel == Panel::Run) {
                     if (run.active_field == 0) {
-                        run.mode = (run.mode + 1) % 3;
+                        run.mode = (run.mode + 1) % 4;
                     } else if (run.active_field == 1) {
                         run.setpoint += 0.05f;
                     } else if (run.active_field == 2) {
@@ -418,7 +425,7 @@ int main(int argc, char* argv[]) {
             case '_':
                 if (ui.active_panel == Panel::Run) {
                     if (run.active_field == 0) {
-                        run.mode = (run.mode + 2) % 3;
+                        run.mode = (run.mode + 3) % 4;
                     } else if (run.active_field == 1) {
                         run.setpoint -= 0.05f;
                     } else if (run.active_field == 2 && run.slot > 0) {
@@ -473,6 +480,8 @@ int main(int argc, char* argv[]) {
             motor.setVelocity(run.setpoint, run.slot);
         } else if (run.mode == 2) {
             motor.setVoltage(run.setpoint, run.slot);
+        } else if (run.mode == 3) {
+            motor.setPosition(run.setpoint, run.slot);
         }
 
         const int feedback_y = (h > 18) ? (h - 4) : (h - 3);
@@ -509,13 +518,6 @@ int main(int argc, char* argv[]) {
 
         int left_center = (mid_x / 2) - 7;
         int right_center = mid_x + ((w - mid_x) / 2) - 8;
-
-        auto drawField = [](bool panel_focused, int active_field, int target_field, int y, int x, const char* format, auto value) {
-            const bool highlight = panel_focused && (active_field == target_field);
-            if (highlight) attron(A_REVERSE);
-            mvprintw(y, x, format, value);
-            if (highlight) attroff(A_REVERSE);
-        };
 
         // Top-left: Run
         if (run_focus) attron(COLOR_PAIR(1) | A_BOLD);
@@ -568,6 +570,7 @@ int main(int argc, char* argv[]) {
 
         const auto& s0 = motor.getStatus0();
         const auto& s2 = motor.getStatus2();
+        const auto& s5 = motor.getStatus5();
         const bool feedback_fresh = have_feedback && ((std::chrono::steady_clock::now() - last_feedback_at) < feedbackStaleAfter);
 
         attron(COLOR_PAIR(3) | A_BOLD);
@@ -576,13 +579,14 @@ int main(int argc, char* argv[]) {
 
         HIGHLIGHT_VALIDITY(feedback_fresh,
             mvprintw(feedback_y + 1, 18, "Pos %.3f | Vel %.3f RPM | Curr %.3f A | Volt %.3f V  [%s]", s2.primaryEncoderPosition, s2.primaryEncoderVelocity, s0.current, s0.voltage, feedback_fresh ? "live" : "stale"));
+        HIGHLIGHT_VALIDITY(feedback_fresh,
+            mvprintw(feedback_y + 2, 18, "DC Pos %.3f | DC Vel %.3f", s5.dutyCycleEncPosition, s5.dutyCycleEncVelocity));
         if (has_colors()) {
             attroff(COLOR_PAIR(RED_FOREGROUND_PAIR));
             attroff(COLOR_PAIR(GREEN_FOREGROUND_PAIR));
         }
 
         refresh();
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
     }
     endwin();
