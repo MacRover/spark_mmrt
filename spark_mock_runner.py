@@ -536,6 +536,12 @@ class SparkMock:
                 self.__heartbeat_timed_out = False
                 self.__statuses[0].primary_heartbeat_lock = True
 
+        if device_id == 0 and device_type == 2 and manufacturer == 5 and api_id == 0xB2:
+            self.logger.debug("Received Secondary Heartbeat, refreshing timer")
+            with self.__lock:
+                self.__heartbeat_timer = 0.0
+                self.__heartbeat_timed_out = False
+
         if device_id != self.device_id or device_type != 2 or manufacturer != 5:
             return
         

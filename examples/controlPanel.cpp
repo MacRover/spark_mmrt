@@ -1,5 +1,4 @@
 #include "spark_mmrt/device/SparkMax.hpp"
-#include "spark_mmrt/device/roboRIO.hpp"
 #include <ncurses.h>
 #include <chrono>
 #include <cmath>
@@ -314,7 +313,6 @@ int main(int argc, char* argv[]) {
     transport.open(interface);
 
     SparkMax motor(transport, defaultCanId);
-    RoboRIO rio(transport);
 
     UIState ui;
     RunState run;
@@ -323,6 +321,7 @@ int main(int argc, char* argv[]) {
     EncoderState encoder;
     auto last_feedback_at = std::chrono::steady_clock::time_point{};
     bool have_feedback = false;
+    bool heartbeat_on = true;
 
     PanelState saved;
         if (loadPanelState(saved)) {
@@ -371,6 +370,9 @@ int main(int argc, char* argv[]) {
             case 'q':
             case 'Q':
                 ui.is_running = false;
+                break;
+            case ' ':
+                heartbeat_on = !heartbeat_on;
                 break;
             case KEY_RIGHT:
                 ui.active_panel = cyclePanel(ui.active_panel, 1);
@@ -471,8 +473,9 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-
-        rio.heartbeat();
+        if (heartbeat_on) {
+            motor.heartbeat();
+        }
 
         if (run.mode == 0) {
             motor.setDutyCycle(run.setpoint, run.slot);
@@ -509,7 +512,7 @@ int main(int argc, char* argv[]) {
         attron(COLOR_PAIR(1) | A_BOLD);
         mvprintw(0, 2, " SparkMAX control panel ");
         attroff(COLOR_PAIR(1) | A_BOLD);
-        mvprintw(2, 2, "CAN ID: %d | Press 'q' to quit | arrows to navigate | +/- edit", motor.getID());
+        mvprintw(2, 2, "CAN ID: %d | Press space to %s | Press 'q' to quit | arrows to navigate | +/- edit", motor.getID(), heartbeat_on ? "stall" : "run");
 
         const bool run_focus = (ui.active_panel == Panel::Run);
         const bool pidf_focus = (ui.active_panel == Panel::Pidf);
