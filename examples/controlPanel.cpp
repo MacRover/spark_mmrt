@@ -127,10 +127,10 @@ struct RunState {
 };
 
 struct PidfState {
-    float p = 0.0f;
-    float i = 0.0f;
-    float d = 0.0f;
-    float f = 0.0f;
+    float p[4] = {};
+    float i[4] = {};
+    float d[4] = {};
+    float f[4] = {};
     int active_field = 0;
 };
 
@@ -169,21 +169,21 @@ static void retargetMotor(SparkMax& motor, UIState& ui, uint8_t new_id) {
 // Writes the edited PIDF value to the corresponding SparkMAX parameter (P0/I0/D0/F0)
 static void applyPidfEdit(SparkMax& motor, PidfState& pidf, int field, uint8_t pidSlot) {
     if (field == 0) {
-        motor.setP(pidf.p, pidSlot, paramTimeout);
+        motor.setP(pidf.p[pidSlot], pidSlot, paramTimeout);
     } else if (field == 1) {
-        motor.setI(pidf.i, pidSlot, paramTimeout);
+        motor.setI(pidf.i[pidSlot], pidSlot, paramTimeout);
     } else if (field == 2) {
-        motor.setD(pidf.d, pidSlot, paramTimeout);
+        motor.setD(pidf.d[pidSlot], pidSlot, paramTimeout);
     } else if (field == 3) {
-        motor.setF(pidf.f, pidSlot, paramTimeout);
+        motor.setF(pidf.f[pidSlot], pidSlot, paramTimeout);
     }
 }
 
 static void applyAllPidf(SparkMax& motor, const PidfState& pidf, uint8_t pidSlot) {
-    motor.setP(pidf.p, pidSlot, paramTimeout);
-    motor.setI(pidf.i, pidSlot, paramTimeout);
-    motor.setD(pidf.d, pidSlot, paramTimeout);
-    motor.setF(pidf.f, pidSlot, paramTimeout);
+    motor.setP(pidf.p[pidSlot], pidSlot, paramTimeout);
+    motor.setI(pidf.i[pidSlot], pidSlot, paramTimeout);
+    motor.setD(pidf.d[pidSlot], pidSlot, paramTimeout);
+    motor.setF(pidf.f[pidSlot], pidSlot, paramTimeout);
 }
 
 static void applyConfigEdit(SparkMax& motor, ConfigState& config, int field) {
@@ -240,14 +240,12 @@ static bool loadPanelState(PanelState& state) {
                 state.run.setpoint = std::stof(val);
             } else if (key == "pid_slot") {
                 state.run.slot = static_cast<uint8_t>(std::stoi(val));
-            } else if (key == "p") {
-                state.pidf.p = std::stof(val);
-            } else if (key == "i") {
-                state.pidf.i = std::stof(val);
-            } else if (key == "d") {
-                state.pidf.d = std::stof(val);
-            } else if (key == "f") {
-                state.pidf.f = std::stof(val);
+            } else if (key.size() == 2 && key[1] >= '0' && key[1] <= '3') {
+                const int s = key[1] - '0';
+                if (key[0] == 'p') state.pidf.p[s] = std::stof(val);
+                else if (key[0] == 'i') state.pidf.i[s] = std::stof(val);
+                else if (key[0] == 'd') state.pidf.d[s] = std::stof(val);
+                else if (key[0] == 'f') state.pidf.f[s] = std::stof(val);
             } else if (key == "control_type") {
                 state.config.control_type = std::stoi(val);
             } else if (key == "sensor_type") {
@@ -276,12 +274,14 @@ static void savePanelState(const PanelState& state) {
     out << "can_id=" << static_cast<int>(state.can_id) << '\n'
         << "mode=" << state.run.mode << '\n'
         << "setpoint=" << state.run.setpoint << '\n'
-        << "pid_slot=" << static_cast<int>(state.run.slot) << '\n'
-        << "p=" << state.pidf.p << '\n'
-        << "i=" << state.pidf.i << '\n'
-        << "d=" << state.pidf.d << '\n'
-        << "f=" << state.pidf.f << '\n'
-        << "control_type=" << state.config.control_type << '\n'
+        << "pid_slot=" << static_cast<int>(state.run.slot) << '\n';
+    for (int s = 0; s < 4; ++s) {
+        out << "p" << s << "=" << state.pidf.p[s] << '\n'
+            << "i" << s << "=" << state.pidf.i[s] << '\n'
+            << "d" << s << "=" << state.pidf.d[s] << '\n'
+            << "f" << s << "=" << state.pidf.f[s] << '\n';
+    }
+    out << "control_type=" << state.config.control_type << '\n'
         << "sensor_type=" << state.config.sensor_type << '\n'
         << "position_factor=" << state.encoder.position_factor << '\n'
         << "velocity_factor=" << state.encoder.velocity_factor << '\n'
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
     EncoderState encoder;
     auto last_feedback_at = std::chrono::steady_clock::time_point{};
     bool have_feedback = false;
-    bool heartbeat_on = true;
+    bool heartbeat_on = false;
 
     PanelState saved;
         if (loadPanelState(saved)) {
@@ -394,16 +394,16 @@ int main(int argc, char* argv[]) {
                     } else if (run.active_field == 1) {
                         run.setpoint += 0.05f;
                     } else if (run.active_field == 2) {
-                        run.slot += 1;
+                        run.slot = (run.slot + 1) % 4;
                     } else if (run.active_field == 3 && ui.current_can_id < maxCanId) {
                         retargetMotor(motor, ui, static_cast<uint8_t>(ui.current_can_id + 1));
                         have_feedback = false; 
                     }
                 } else if (ui.active_panel == Panel::Pidf) {
-                    if (pidf.active_field == 0) pidf.p += 0.001f;
-                    else if (pidf.active_field == 1) pidf.i += 0.001f;
-                    else if (pidf.active_field == 2) pidf.d += 0.001f;
-                    else if (pidf.active_field == 3) pidf.f += 0.001f;
+                    if (pidf.active_field == 0) pidf.p[run.slot] += 0.001f;
+                    else if (pidf.active_field == 1) pidf.i[run.slot] += 0.001f;
+                    else if (pidf.active_field == 2) pidf.d[run.slot] += 0.001f;
+                    else if (pidf.active_field == 3) pidf.f[run.slot] += 0.001f;
                     applyPidfEdit(motor, pidf, pidf.active_field, run.slot);
                 } else if (ui.active_panel == Panel::Config) {
                     if (config.active_field == 0) {
@@ -430,17 +430,17 @@ int main(int argc, char* argv[]) {
                         run.mode = (run.mode + 3) % 4;
                     } else if (run.active_field == 1) {
                         run.setpoint -= 0.05f;
-                    } else if (run.active_field == 2 && run.slot > 0) {
-                        run.slot -= 1;
+                    } else if (run.active_field) {
+                        run.slot = (run.slot + 3) % 4;
                     } else if (run.active_field == 3 && ui.current_can_id > 0) {
                         retargetMotor(motor, ui, static_cast<uint8_t>(ui.current_can_id - 1));
                         have_feedback = false;
                     }
                 } else if (ui.active_panel == Panel::Pidf) {
-                    if (pidf.active_field == 0) pidf.p -= 0.001f;
-                    else if (pidf.active_field == 1) pidf.i -= 0.001f;
-                    else if (pidf.active_field == 2) pidf.d -= 0.001f;
-                    else if (pidf.active_field == 3) pidf.f -= 0.001f;
+                    if (pidf.active_field == 0) pidf.p[run.slot] -= 0.001f;
+                    else if (pidf.active_field == 1) pidf.i[run.slot] -= 0.001f;
+                    else if (pidf.active_field == 2) pidf.d[run.slot] -= 0.001f;
+                    else if (pidf.active_field == 3) pidf.f[run.slot] -= 0.001f;
                     applyPidfEdit(motor, pidf, pidf.active_field, run.slot);
                 } else if (ui.active_panel == Panel::Config) {
                     if (config.active_field == 0) {
@@ -549,10 +549,10 @@ int main(int argc, char* argv[]) {
         mvprintw(top_title_y, right_center, " - PIDF tuning - ");
         if (pidf_focus) attroff(COLOR_PAIR(1) | A_BOLD);
 
-        drawField(pidf_focus, pidf.active_field, 0, top_field_y,     mid_x + 4, "P: %.4f", pidf.p);
-        drawField(pidf_focus, pidf.active_field, 1, top_field_y + 1, mid_x + 4, "I: %.4f", pidf.i);
-        drawField(pidf_focus, pidf.active_field, 2, top_field_y + 2, mid_x + 4, "D: %.4f", pidf.d);
-        drawField(pidf_focus, pidf.active_field, 3, top_field_y + 3, mid_x + 4, "F: %.4f", pidf.f);
+        drawField(pidf_focus, pidf.active_field, 0, top_field_y,     mid_x + 4, "P: %.4f", pidf.p[run.slot]);
+        drawField(pidf_focus, pidf.active_field, 1, top_field_y + 1, mid_x + 4, "I: %.4f", pidf.i[run.slot]);
+        drawField(pidf_focus, pidf.active_field, 2, top_field_y + 2, mid_x + 4, "D: %.4f", pidf.d[run.slot]);
+        drawField(pidf_focus, pidf.active_field, 3, top_field_y + 3, mid_x + 4, "F: %.4f", pidf.f[run.slot]);
 
         // Bottom-left: Config
         if (config_focus) attron(COLOR_PAIR(1) | A_BOLD);
