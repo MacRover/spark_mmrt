@@ -3,4 +3,3 @@ bin/
 build/
 .vscode/
 .DS_Store
-config/control_panel_state
