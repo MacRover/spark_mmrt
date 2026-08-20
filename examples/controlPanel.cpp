@@ -391,11 +391,11 @@ int main(int argc, char* argv[]) {
                 if (ui.active_panel == Panel::Run) {
                     if (run.active_field == 0) {
                         run.mode = (run.mode + 1) % 4;
+                        run.setpoint = 0.0f; // reset setpoint when changing mode
                     } else if (run.active_field == 1) {
                         if (run.mode == 1) run.setpoint += 100.0f;
                         else if (run.mode == 3) run.setpoint += 1.0f;
                         else run.setpoint += 0.05f;
-                    }
                     } else if (run.active_field == 2) {
                         run.slot = (run.slot + 1) % 4;
                     } else if (run.active_field == 3 && ui.current_can_id < maxCanId) {
@@ -431,6 +431,7 @@ int main(int argc, char* argv[]) {
                 if (ui.active_panel == Panel::Run) {
                     if (run.active_field == 0) {
                         run.mode = (run.mode + 3) % 4;
+                        run.setpoint = 0.0f; 
                     } else if (run.active_field == 1) {
                         if (run.mode == 1) run.setpoint -= 100.0f;
                         else if (run.mode == 3) run.setpoint -= 1.0f;
