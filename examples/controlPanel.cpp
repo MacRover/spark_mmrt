@@ -20,7 +20,7 @@ namespace {
 
 volatile std::sig_atomic_t g_running = 1;
 
-constexpr uint8_t defaultCanId = 1;
+constexpr uint8_t defaultCanId = 21;  // while testing against the vcan set ID to 1
 constexpr uint8_t maxCanId = 63;
 constexpr int controlTypeCount = 8;
 constexpr int sensorTypeCount = 5;
@@ -392,7 +392,10 @@ int main(int argc, char* argv[]) {
                     if (run.active_field == 0) {
                         run.mode = (run.mode + 1) % 4;
                     } else if (run.active_field == 1) {
-                        run.setpoint += 0.05f;
+                        if (run.mode == 1) run.setpoint += 100.0f;
+                        else if (run.mode == 3) run.setpoint += 1.0f;
+                        else run.setpoint += 0.05f;
+                    }
                     } else if (run.active_field == 2) {
                         run.slot = (run.slot + 1) % 4;
                     } else if (run.active_field == 3 && ui.current_can_id < maxCanId) {
@@ -400,10 +403,10 @@ int main(int argc, char* argv[]) {
                         have_feedback = false; 
                     }
                 } else if (ui.active_panel == Panel::Pidf) {
-                    if (pidf.active_field == 0) pidf.p[run.slot] += 0.001f;
-                    else if (pidf.active_field == 1) pidf.i[run.slot] += 0.001f;
-                    else if (pidf.active_field == 2) pidf.d[run.slot] += 0.001f;
-                    else if (pidf.active_field == 3) pidf.f[run.slot] += 0.001f;
+                    if (pidf.active_field == 0) pidf.p[run.slot] += 0.00005f;
+                    else if (pidf.active_field == 1) pidf.i[run.slot] += 0.00001f;
+                    else if (pidf.active_field == 2) pidf.d[run.slot] += 0.00001f;
+                    else if (pidf.active_field == 3) pidf.f[run.slot] += 0.00001f;
                     applyPidfEdit(motor, pidf, pidf.active_field, run.slot);
                 } else if (ui.active_panel == Panel::Config) {
                     if (config.active_field == 0) {
@@ -429,18 +432,20 @@ int main(int argc, char* argv[]) {
                     if (run.active_field == 0) {
                         run.mode = (run.mode + 3) % 4;
                     } else if (run.active_field == 1) {
-                        run.setpoint -= 0.05f;
-                    } else if (run.active_field) {
+                        if (run.mode == 1) run.setpoint -= 100.0f;
+                        else if (run.mode == 3) run.setpoint -= 1.0f;
+                        else run.setpoint -= 0.05f;
+                    } else if (run.active_field == 2) {
                         run.slot = (run.slot + 3) % 4;
                     } else if (run.active_field == 3 && ui.current_can_id > 0) {
                         retargetMotor(motor, ui, static_cast<uint8_t>(ui.current_can_id - 1));
                         have_feedback = false;
                     }
                 } else if (ui.active_panel == Panel::Pidf) {
-                    if (pidf.active_field == 0) pidf.p[run.slot] -= 0.001f;
-                    else if (pidf.active_field == 1) pidf.i[run.slot] -= 0.001f;
-                    else if (pidf.active_field == 2) pidf.d[run.slot] -= 0.001f;
-                    else if (pidf.active_field == 3) pidf.f[run.slot] -= 0.001f;
+                    if (pidf.active_field == 0) pidf.p[run.slot] -= 0.00005f;
+                    else if (pidf.active_field == 1) pidf.i[run.slot] -= 0.00001f;
+                    else if (pidf.active_field == 2) pidf.d[run.slot] -= 0.00001f;
+                    else if (pidf.active_field == 3) pidf.f[run.slot] -= 0.00001f;
                     applyPidfEdit(motor, pidf, pidf.active_field, run.slot);
                 } else if (ui.active_panel == Panel::Config) {
                     if (config.active_field == 0) {
@@ -549,10 +554,10 @@ int main(int argc, char* argv[]) {
         mvprintw(top_title_y, right_center, " - PIDF tuning - ");
         if (pidf_focus) attroff(COLOR_PAIR(1) | A_BOLD);
 
-        drawField(pidf_focus, pidf.active_field, 0, top_field_y,     mid_x + 4, "P: %.4f", pidf.p[run.slot]);
-        drawField(pidf_focus, pidf.active_field, 1, top_field_y + 1, mid_x + 4, "I: %.4f", pidf.i[run.slot]);
-        drawField(pidf_focus, pidf.active_field, 2, top_field_y + 2, mid_x + 4, "D: %.4f", pidf.d[run.slot]);
-        drawField(pidf_focus, pidf.active_field, 3, top_field_y + 3, mid_x + 4, "F: %.4f", pidf.f[run.slot]);
+        drawField(pidf_focus, pidf.active_field, 0, top_field_y,     mid_x + 4, "P: %.6f", pidf.p[run.slot]);
+        drawField(pidf_focus, pidf.active_field, 1, top_field_y + 1, mid_x + 4, "I: %.6f", pidf.i[run.slot]);
+        drawField(pidf_focus, pidf.active_field, 2, top_field_y + 2, mid_x + 4, "D: %.6f", pidf.d[run.slot]);
+        drawField(pidf_focus, pidf.active_field, 3, top_field_y + 3, mid_x + 4, "F: %.6f", pidf.f[run.slot]);
 
         // Bottom-left: Config
         if (config_focus) attron(COLOR_PAIR(1) | A_BOLD);
