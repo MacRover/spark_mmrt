@@ -36,6 +36,22 @@ class SensorType(Enum):
 class ParameterID(Enum):
     CONTROL_TYPE = 5
     SENSOR_TYPE = 9
+    P0 = 13
+    I0 = 14
+    D0 = 15
+    F0 = 16
+    P1 = 21
+    I1 = 22
+    D1 = 23
+    F1 = 24
+    P2 = 29
+    I2 = 30
+    D2 = 31
+    F2 = 32
+    P3 = 37
+    I3 = 38
+    D3 = 39
+    F3 = 40
     POSITION_FACTOR = 112
     VELOCITY_FACTOR = 113
     DUTY_CYCLE_POSITION_FACTOR = 139
@@ -175,6 +191,30 @@ class SparkMock:
         self.__active_setpoint = 0.0
         self.__control_type = ControlType(params.get("control_type", 0))
         self.__sensor_type = SensorType(params.get("sensor_type", 1))
+        self.__p_slots = [
+            float(params.get("p", 0.0)),
+            float(params.get("p1", 0.0)),
+            float(params.get("p2", 0.0)),
+            float(params.get("p3", 0.0)),
+        ]
+        self.__i_slots = [
+            float(params.get("i", 0.0)),
+            float(params.get("i1", 0.0)),
+            float(params.get("i2", 0.0)),
+            float(params.get("i3", 0.0)),
+        ]
+        self.__d_slots = [
+            float(params.get("d", 0.0)),
+            float(params.get("d1", 0.0)),
+            float(params.get("d2", 0.0)),
+            float(params.get("d3", 0.0)),
+        ]
+        self.__f_slots = [
+            float(params.get("f", 0.0)),
+            float(params.get("f1", 0.0)),
+            float(params.get("f2", 0.0)),
+            float(params.get("f3", 0.0)),
+        ]
         self.__pos_factor = params.get("position_factor", 1.0)
         self.__vel_factor = params.get("velocity_factor", 1.0)
         self.__abs_pos_factor = params.get("abs_position_factor", 1.0)
@@ -306,6 +346,38 @@ class SparkMock:
         param_id = ParameterID(param_id)
         if param_id == ParameterID.CONTROL_TYPE:
             return self.__control_type.value, ParameterType.UINT
+        elif param_id == ParameterID.P0:
+            return self.__p_slots[0], ParameterType.FLOAT
+        elif param_id == ParameterID.P1:
+            return self.__p_slots[1], ParameterType.FLOAT
+        elif param_id == ParameterID.P2:
+            return self.__p_slots[2], ParameterType.FLOAT
+        elif param_id == ParameterID.P3:
+            return self.__p_slots[3], ParameterType.FLOAT
+        elif param_id == ParameterID.I0:
+            return self.__i_slots[0], ParameterType.FLOAT
+        elif param_id == ParameterID.I1:
+            return self.__i_slots[1], ParameterType.FLOAT
+        elif param_id == ParameterID.I2:
+            return self.__i_slots[2], ParameterType.FLOAT
+        elif param_id == ParameterID.I3:
+            return self.__i_slots[3], ParameterType.FLOAT
+        elif param_id == ParameterID.D0:
+            return self.__d_slots[0], ParameterType.FLOAT
+        elif param_id == ParameterID.D1:
+            return self.__d_slots[1], ParameterType.FLOAT
+        elif param_id == ParameterID.D2:
+            return self.__d_slots[2], ParameterType.FLOAT
+        elif param_id == ParameterID.D3:
+            return self.__d_slots[3], ParameterType.FLOAT
+        elif param_id == ParameterID.F0:
+            return self.__f_slots[0], ParameterType.FLOAT
+        elif param_id == ParameterID.F1:
+            return self.__f_slots[1], ParameterType.FLOAT
+        elif param_id == ParameterID.F2:
+            return self.__f_slots[2], ParameterType.FLOAT
+        elif param_id == ParameterID.F3:
+            return self.__f_slots[3], ParameterType.FLOAT
         elif param_id == ParameterID.POSITION_FACTOR:
             return self.__pos_factor, ParameterType.FLOAT
         elif param_id == ParameterID.VELOCITY_FACTOR:
@@ -332,6 +404,74 @@ class SparkMock:
             self.__control_type = ControlType(param_value)
             type = ParameterType.UINT
             self.logger.info(f"Updated Control Type to {self.__control_type.name}")
+
+        elif param_id == ParameterID.P0:
+            self.__p_slots[0], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated P0 to {self.__p_slots[0]}")
+        elif param_id == ParameterID.P1:
+            self.__p_slots[1], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated P1 to {self.__p_slots[1]}")
+        elif param_id == ParameterID.P2:
+            self.__p_slots[2], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated P2 to {self.__p_slots[2]}")
+        elif param_id == ParameterID.P3:
+            self.__p_slots[3], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated P3 to {self.__p_slots[3]}")
+
+        elif param_id == ParameterID.I0:
+            self.__i_slots[0], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated I0 to {self.__i_slots[0]}")
+        elif param_id == ParameterID.I1:
+            self.__i_slots[1], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated I1 to {self.__i_slots[1]}")
+        elif param_id == ParameterID.I2:
+            self.__i_slots[2], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated I2 to {self.__i_slots[2]}")
+        elif param_id == ParameterID.I3:
+            self.__i_slots[3], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated I3 to {self.__i_slots[3]}")
+
+        elif param_id == ParameterID.D0:
+            self.__d_slots[0], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated D0 to {self.__d_slots[0]}")
+        elif param_id == ParameterID.D1:
+            self.__d_slots[1], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated D1 to {self.__d_slots[1]}")
+        elif param_id == ParameterID.D2:
+            self.__d_slots[2], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated D2 to {self.__d_slots[2]}")
+        elif param_id == ParameterID.D3:
+            self.__d_slots[3], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated D3 to {self.__d_slots[3]}")
+
+        elif param_id == ParameterID.F0:
+            self.__f_slots[0], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated F0 to {self.__f_slots[0]}")
+        elif param_id == ParameterID.F1:
+            self.__f_slots[1], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated F1 to {self.__f_slots[1]}")
+        elif param_id == ParameterID.F2:
+            self.__f_slots[2], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated F2 to {self.__f_slots[2]}")
+        elif param_id == ParameterID.F3:
+            self.__f_slots[3], = struct.unpack("<f", struct.pack("<I", param_value))
+            type = ParameterType.FLOAT
+            self.logger.info(f"Updated F3 to {self.__f_slots[3]}")
 
         elif param_id == ParameterID.POSITION_FACTOR:
             self.__pos_factor, = struct.unpack("<f", struct.pack("<I", param_value))
@@ -364,7 +504,14 @@ class SparkMock:
             type = ParameterType.BOOL
 
         if update_setpoint_factors or param_id == ParameterID.SENSOR_TYPE:
-            sensor = SensorType(param_value)
+            if param_id == ParameterID.SENSOR_TYPE:
+                sensor = SensorType(param_value)
+                self.__sensor_type = sensor
+                type = ParameterType.UINT
+                self.logger.info(f"Updated Sensor Type to {self.__sensor_type.name}")
+            else:
+                sensor = self.__sensor_type
+
             if sensor == SensorType.MAIN_ENCODER:
                 self.__setpoint_pos_factor = 1.0
                 self.__setpoint_vel_factor = 1.0
@@ -374,11 +521,6 @@ class SparkMock:
             elif sensor == SensorType.NONE:
                 self.__setpoint_pos_factor = 0.0
                 self.__setpoint_vel_factor = 0.0
-
-            self.__sensor_type = sensor
-            type = ParameterType.UINT
-            if param_id == ParameterID.SENSOR_TYPE:
-                self.logger.info(f"Updated Sensor Type to {self.__sensor_type.name}")
 
         return True, type
     
@@ -395,6 +537,12 @@ class SparkMock:
                 self.__heartbeat_timer = 0.0
                 self.__heartbeat_timed_out = False
                 self.__statuses[0].primary_heartbeat_lock = True
+
+        if device_id == 0 and device_type == 2 and manufacturer == 5 and api_id == 0xB2:
+            self.logger.debug("Received Secondary Heartbeat, refreshing timer")
+            with self.__lock:
+                self.__heartbeat_timer = 0.0
+                self.__heartbeat_timed_out = False
 
         if device_id != self.device_id or device_type != 2 or manufacturer != 5:
             return

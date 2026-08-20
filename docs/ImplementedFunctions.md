@@ -50,9 +50,13 @@ This document lists the currently implemented functions for sparkMMRT library
 - `std::optional<ParamWriteResponse> setControlType(ControlType type, std::chrono::milliseconds timeout)`: Write and apply control type.
 - `std::optional<ParamWriteResponse> setSensorType(SensorType type, std::chrono::milliseconds timeout)`: Write and apply sensor type.
 - `std::optional<ParamWriteResponse> setP(float val, std::chrono::milliseconds timeout)`: Write the P gain for slot 0.
+- `std::optional<ParamWriteResponse> setP(float val, uint8_t pidSlot, std::chrono::milliseconds timeout)`: Write the P gain for a specific slot (0-3).
 - `std::optional<ParamWriteResponse> setI(float val, std::chrono::milliseconds timeout)`: Write the I gain for slot 0.
+- `std::optional<ParamWriteResponse> setI(float val, uint8_t pidSlot, std::chrono::milliseconds timeout)`: Write the I gain for a specific slot (0-3).
 - `std::optional<ParamWriteResponse> setD(float val, std::chrono::milliseconds timeout)`: Write the D gain for slot 0.
+- `std::optional<ParamWriteResponse> setD(float val, uint8_t pidSlot, std::chrono::milliseconds timeout)`: Write the D gain for a specific slot (0-3).
 - `std::optional<ParamWriteResponse> setF(float val, std::chrono::milliseconds timeout)`: Write the F gain for slot 0.
+- `std::optional<ParamWriteResponse> setF(float val, uint8_t pidSlot, std::chrono::milliseconds timeout)`: Write the F gain for a specific slot (0-3).
 - `std::optional<ParamWriteResponse> setIZ(float val, std::chrono::milliseconds timeout)`: Write the I-zone for slot 0.
 - `std::optional<ParamWriteResponse> setDFilter(float val, std::chrono::milliseconds timeout)`: Write the D filter for slot 0.
 - `std::optional<ParamWriteResponse> setOutputMin(float val, std::chrono::milliseconds timeout)`: Write the minimum output for slot 0.

@@ -20,6 +20,19 @@ namespace param{
         PARAM_I0 = 14,
         PARAM_D0 = 15, 
         PARAM_F0 = 16,
+        // REV uses 0-3 gain slots
+        PARAM_P1 = 21,
+        PARAM_I1 = 22,
+        PARAM_D1 = 23,
+        PARAM_F1 = 24,
+        PARAM_P2 = 29,
+        PARAM_I2 = 30,
+        PARAM_D2 = 31,
+        PARAM_F2 = 32,
+        PARAM_P3 = 37,
+        PARAM_I3 = 38,
+        PARAM_D3 = 39,
+        PARAM_F3 = 40,
         PARAM_IZ0 = 17,
         PARAM_DFilter0 = 18,
         PARAM_OutputMin0 = 19,
@@ -62,6 +75,18 @@ namespace param{
         float I;
         float D;
         float F;
+        float P1;
+        float I1;
+        float D1;
+        float F1;
+        float P2;
+        float I2;
+        float D2;
+        float F2;
+        float P3;
+        float I3;
+        float D3;
+        float F3;
         float IZ;
         float DFilter;
         float OutputMin;
