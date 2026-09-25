@@ -13,6 +13,8 @@ mock_runners:
         can_mask: 0x0FFFFFC0
       - can_id: 0x01011840
         can_mask: 0x0FFFFFFF
+      - can_id: 0x02052C80
+        can_mask: 0x0FFFFFFF
     can_nodes:
       - name: node1
         device_id: 1
